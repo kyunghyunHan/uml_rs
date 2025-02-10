@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 leptos = { version = "0.7.5", features = ["csr"] }
+leptos_router = "0.7.5"
 serde = "1.0.217"
