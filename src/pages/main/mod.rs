@@ -1,8 +1,5 @@
-use leptos::mount::mount_to_body;
 use leptos::prelude::*;
-use leptos_router::components::*;
 use leptos_router::components::{A, Outlet, ParentRoute, Route, Router, Routes};
-use leptos_router::path;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -110,13 +107,13 @@ pub fn StoryGallery() -> impl IntoView {
                                 class=move || format!("flex flex-col items-center {}", if is_selected() { "opacity-100" } else { "opacity-50" })
                                 on:click=move |_| toggle_category(category_clone.clone())
                             >
-                                <div class=format!("w-16 h-16 rounded-full {} flex items-center justify-center mb-1", bg_color)>
-                                    <img
-                                        src=icon
-                                        alt=label
-                                        class="w-8 h-8"
-                                    />
-                                </div>
+                                // <div class=format!("w-16 h-16 rounded-full {} flex items-center justify-center mb-1", bg_color)>
+                                //     // <img
+                                //     //     src=icon
+                                //     //     alt=label
+                                //     //     class="w-8 h-8"
+                                //     // />
+                                // </div>
                                 <span class="text-xs">{label}</span>
                             </button>
                         }
