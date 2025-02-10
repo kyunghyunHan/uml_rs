@@ -1,59 +1,98 @@
 use leptos::prelude::*;
+use serde::{Deserialize, Serialize};
+use leptos::mount::mount_to_body;
 
-// The #[component] macro marks a function as a reusable component
-// Components are the building blocks of your user interface
-// They define a reusable unit of behavior
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct Profile {
+    id: i32,
+    username: String,
+    avatar: String,
+    posts: Vec<String>,
+}
+
 #[component]
-fn App() -> impl IntoView {
-    // here we create a reactive signal
-    // and get a (getter, setter) pair
-    // signals are the basic unit of change in the framework
-    // we'll talk more about them later
-    let (count, set_count) = signal(0);
+fn StoryGallery() -> impl IntoView {
+    let (selected_profile, set_selected_profile) = create_signal::<Option<Profile>>(None);
+    
+    let profiles = vec![
+        Profile {
+            id: 1,
+            username: "genieustory".to_string(),
+            avatar: "/api/placeholder/50/50".to_string(),
+            posts: vec![
+                "/api/placeholder/300/400".to_string(),
+                "/api/placeholder/300/400".to_string(),
+            ],
+        },
+        Profile {
+            id: 2,
+            username: "_dev_joon".to_string(),
+            avatar: "/api/placeholder/50/50".to_string(),
+            posts: vec![
+                "/api/placeholder/300/400".to_string(),
+                "/api/placeholder/300/400".to_string(),
+            ],
+        },
+    ];
 
-    // the `view` macro is how we define the user interface
-    // it uses an HTML-like format that can accept certain Rust values
     view! {
-        <button
-            // on:click will run whenever the `click` event fires
-            // every event handler is defined as `on:{eventname}`
+        <div class="flex flex-col w-full max-w-2xl mx-auto">
+            <div class="flex space-x-4 p-4 overflow-x-auto">
+                {profiles.into_iter().map(|profile| {
+                    let profile_clone = profile.clone();
+                    let set_selected = set_selected_profile.clone();
+                    view! {
+                        <button
+                            on:click=move |_| set_selected.set(Some(profile_clone.clone()))
+                            class="flex flex-col items-center"
+                        >
+                            <div class="w-16 h-16 rounded-full p-0.5 bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500">
+                                <div class="w-full h-full rounded-full p-0.5 bg-black">
+                                    <img
+                                        src={profile.avatar}
+                                        alt={profile.username.clone()}
+                                        class="w-full h-full rounded-full object-cover"
+                                    />
+                                </div>
+                            </div>
+                            <span class="text-xs mt-1 text-gray-200">{profile.username}</span>
+                        </button>
+                    }
+                }).collect_view()}
+            </div>
 
-            // we're able to move `set_count` into the closure
-            // because signals are Copy and 'static
+            {move || {
+                let empty_view = view! {
+                    <div class="grid grid-cols-3 gap-1 p-4">
+                        {Vec::<View<_>>::new()}
+                    </div>
+                };
 
-            on:click=move |_| *set_count.write() += 1
-        >
-            // text nodes in RSX should be wrapped in quotes,
-            // like a normal Rust string
-            "Click me: "
-            {count}
-        </button>
-        <p>
-            <strong>"Reactive: "</strong>
-            // you can insert Rust expressions as values in the DOM
-            // by wrapping them in curly braces
-            // if you pass in a function, it will reactively update
-            {move || count.get()}
-        </p>
-        <p>
-            <strong>"Reactive shorthand: "</strong>
-            // you can use signals directly in the view, as a shorthand 
-            // for a function that just wraps the getter
-            {count}
-        </p>
-        <p>
-            <strong>"Not reactive: "</strong>
-            // NOTE: if you just write {count.get()}, this will *not* be reactive
-            // it simply gets the value of count once
-            {count.get()}
-        </p>
+                selected_profile.get().map(|profile| {
+                    let profile = profile.clone();
+                    let posts_view = profile.posts.into_iter().enumerate().map(|(index, post)| {
+                        view! {
+                            <div class="aspect-square">
+                                <img
+                                    src={post}
+                                    alt={format!("Post {} by {}", index + 1, profile.username)}
+                                    class="w-full h-full object-cover"
+                                />
+                            </div>
+                        }
+                    }).collect_view();
+
+                    view! {
+                        <div class="grid grid-cols-3 gap-1 p-4">
+                            {posts_view}
+                        </div>
+                    }
+                }).unwrap_or(empty_view)
+            }}
+        </div>
     }
 }
 
-// This `main` function is the entry point into the app
-// It just mounts our component to the <body>
-// Because we defined it as `fn App`, we can now use it in a
-// template as <App/>
 fn main() {
-    leptos::mount::mount_to_body(App)
+    mount_to_body(|| view! { <StoryGallery/> })
 }
