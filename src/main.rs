@@ -1,102 +1,13 @@
 use leptos::mount::mount_to_body;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct Profile {
-    id: i32,
-    username: String,
-    avatar: String,
-    posts: Vec<String>,
-}
+mod data;
+use data::Profile;
 
 #[component]
 fn StoryGallery() -> impl IntoView {
     let (selected_profile, set_selected_profile) = create_signal::<Option<Profile>>(None);
-
-    let profiles = vec![
-        Profile {
-            id: 1,
-            username: "시금치".to_string(),
-            avatar: "/img/시금치.jpg".to_string(),
-            posts: vec![
-                "/api/placeholder/300/400".to_string(),
-                "/api/placeholder/300/400".to_string(),
-            ],
-        },
-        Profile {
-            id: 2,
-            username: "양배추".to_string(),
-            avatar: "/img/양배추.jpg".to_string(),
-            posts: vec![
-                "/api/placeholder/300/400".to_string(),
-                "/api/placeholder/300/400".to_string(),
-            ],
-        },
-        Profile {
-            id: 3,
-            username: "닭가슴살".to_string(),
-            avatar: "/img/닭가슴살.jpeg".to_string(),
-            posts: vec![
-                "/api/placeholder/300/400".to_string(),
-                "/api/placeholder/300/400".to_string(),
-            ],
-        },
-        Profile {
-            id: 4,
-            username: "올리브유".to_string(),
-            avatar: "/img/올리브유.webp".to_string(),
-            posts: vec![
-                "/api/placeholder/300/400".to_string(),
-                "/api/placeholder/300/400".to_string(),
-            ],
-        },
-        Profile {
-            id: 5,
-            username: "양상추".to_string(),
-            avatar: "/img/양상추.png".to_string(),
-            posts: vec![
-                "/api/placeholder/300/400".to_string(),
-                "/api/placeholder/300/400".to_string(),
-            ],
-        },
-        Profile {
-            id: 6,
-            username: "계란".to_string(),
-            avatar: "/img/계란.jpeg".to_string(),
-            posts: vec![
-                "/api/placeholder/300/400".to_string(),
-                "/api/placeholder/300/400".to_string(),
-            ],
-        },
-        Profile {
-            id: 7,
-            username: "두부".to_string(),
-            avatar: "/img/두부.jpg".to_string(),
-            posts: vec![
-                "/api/placeholder/300/400".to_string(),
-                "/api/placeholder/300/400".to_string(),
-            ],
-        },
-        Profile {
-            id: 8,
-            username: "잡곡".to_string(),
-            avatar: "/img/잡곡.webp".to_string(),
-            posts: vec![
-                "/api/placeholder/300/400".to_string(),
-                "/api/placeholder/300/400".to_string(),
-            ],
-        },
-        Profile {
-            id: 9,
-            username: "렌틸콩".to_string(),
-            avatar: "/img/렌틸콩.webp".to_string(),
-            posts: vec![
-                "/api/placeholder/300/400".to_string(),
-                "/api/placeholder/300/400".to_string(),
-            ],
-        },
-    ];
+    let profiles = data::data();
 
     view! {
         // 헤더 추가
@@ -104,7 +15,7 @@ fn StoryGallery() -> impl IntoView {
             <div class="flex justify-between items-center p-4 border-b">
                 <h1 class="text-xl font-bold">나의 냉장고</h1>
                 <div class="flex items-center space-x-4">
-                    <button class="p-2">
+                    <button class="p-2">use data::Profile;
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                         </svg>
