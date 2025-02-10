@@ -1,6 +1,7 @@
 use leptos::mount::mount_to_body;
 use leptos::prelude::*;
 use leptos_router::components::*;
+use leptos_router::components::{A, Outlet, ParentRoute, Route, Router, Routes};
 use leptos_router::path;
 use serde::{Deserialize, Serialize};
 
@@ -88,18 +89,7 @@ pub fn StoryGallery() -> impl IntoView {
     };
 
     view! {
-        <div class="w-full max-w-2xl mx-auto bg-white">
-            <div class="flex justify-between items-center p-4 border-b">
-                <h1 class="text-xl font-bold">"나의 냉장고"</h1>
-                <div class="flex items-center space-x-4">
-                    <button class="p-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
+        <div >
             <div class="overflow-x-auto">
                 <div class="flex space-x-4 p-4 min-w-max">
                     {[
@@ -155,16 +145,17 @@ pub fn StoryGallery() -> impl IntoView {
                 }).collect_view()}
             </div>
 
-            <div class="fixed bottom-16 left-0 right-0 p-4 bg-white border-t">
-                <button class="w-full py-3 bg-red-500 text-white rounded-lg text-center">
-                    "냉장고 파먹기"
-                </button>
-            </div>
-
+            // <div class="fixed bottom-16 left-0 right-0 p-4 bg-white border-t">
+            //     <button class="w-full py-3 bg-red-500 text-white rounded-lg text-center">
+            //         "냉장고 파먹기"
+            //     </button>
+            // </div>
             <div class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-4">
+               <A href="/users">
                 <button class="flex flex-col items-center text-blue-500">
                     <span class="text-xs mt-1">"나의 냉장고"</span>
                 </button>
+                </A>
                 <button class="flex flex-col items-center">
                     <span class="text-xs mt-1">"모든 레시피"</span>
                 </button>
