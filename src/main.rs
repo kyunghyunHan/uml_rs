@@ -109,15 +109,15 @@ fn StoryGallery() -> impl IntoView {
                             on:click=move |_| set_selected.set(Some(profile_clone.clone()))
                             class="flex flex-col items-center"
                         >
-                            <div class="w-16 h-16 rounded-full p-0.5 bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500">
-                                <div class="w-full h-full rounded-full p-0.5 bg-black">
-                                    <img
-                                        src={profile.avatar}
-                                        alt={profile.username.clone()}
-                                        class="w-full h-full rounded-full object-cover"
-                                    />
-                                </div>
-                            </div>
+                            // <div class="w-16 h-16 rounded-full p-0.5 bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500">
+                            //     // <div class="w-full h-full rounded-full p-0.5 bg-black">
+                            //     //     <img
+                            //     //         src={profile.avatar}
+                            //     //         alt={profile.username.clone()}
+                            //     //         class="w-full h-full rounded-full object-cover"
+                            //     //     />
+                            //     // </div>
+                            // </div>
                             <span class="text-xs mt-1 text-gray-200">{profile.username}</span>
                         </button>
                     }
