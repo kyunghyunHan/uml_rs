@@ -1,7 +1,7 @@
+use crate::AppState;
 use leptos::prelude::*;
 use leptos_router::components::{A, Outlet, ParentRoute, Route, Router, Routes};
 use serde::{Deserialize, Serialize};
-use crate::AppState;
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum Category {
     Vegetable, // 채소
@@ -34,7 +34,7 @@ pub fn StoryGallery() -> impl IntoView {
     let select_profile_action = state.select_profile_action;
     let toggle_category_action = state.toggle_category_action;
     let (selected_profile, set_selected_profile) = create_signal::<Option<Profile>>(None);
-    let (selected_categories, set_selected_categories) = create_signal::<Vec<Category>>(vec![]);
+    let (selected_category, set_selected_category) = create_signal::<Option<Category>>(None);
     let (selected_items, set_selected_items) = create_signal::<Vec<Profile>>(vec![]);
     let profiles = vec![
         Profile {
@@ -77,131 +77,110 @@ pub fn StoryGallery() -> impl IntoView {
             set_items.set(current);
         }
     });
-    let toggle_action = Action::new(move |category: &Category| {
-        let category = category.clone();
-        let selected = selected_categories;
-        let set_selected = set_selected_categories;
-
-        async move {
-            let mut current = selected.get();
-            if let Some(pos) = current.iter().position(|x| x == &category) {
-                current.remove(pos);
-            } else {
-                current.push(category);
+    let toggle_category = move |new_category: Category| {
+        let current = selected_category.get();
+        match current {
+            Some(cat) if cat == new_category => {
+                // 같은 카테고리를 다시 클릭하면 선택 해제
+                set_selected_category.set(None);
             }
-            set_selected.set(current);
-        }
-    });
-    let filtered_profiles = move || {
-        let categories = selected_categories.get();
-        if categories.is_empty() {
-            profiles.clone()
-        } else {
-            profiles
-                .clone()
-                .into_iter()
-                .filter(|profile| {
-                    profile
-                        .categories
-                        .iter()
-                        .any(|cat| categories.contains(cat))
-                })
-                .collect()
+            _ => {
+                // 다른 카테고리를 클릭하면 해당 카테고리로 변경
+                set_selected_category.set(Some(new_category));
+            }
         }
     };
-    // let toggle_category = move |category: Category| {
-    //     let mut current = selected_categories.get();
-    //     if let Some(pos) = current.iter().position(|x| x == &category) {
-    //         current.remove(pos);
-    //     } else {
-    //         current.push(category);
-    //     }
-    //     set_selected_categories.set(current); // 수정된 부분
-    // };
-
+    let filtered_profiles = move || match selected_category.get() {
+        None => profiles.clone(),
+        Some(category) => profiles
+            .clone()
+            .into_iter()
+            .filter(|profile| profile.categories.contains(&category))
+            .collect(),
+    };
     view! {
-        <div >
-        <div class="p-4">
-        {move || {
-            let items = selected_items.get();
-            view! {
-                <div>
-                    {items.into_iter().map(|item| {
-                        view! {
-                            <div class="bg-blue-100 rounded-full px-3 py-1 text-sm">
-                                {item.username}
-                            </div>
-                        }
-                    }).collect_view()}
-                </div>
-            }
-        }}
-    </div>
-            <div class="overflow-x-auto">
-                <div class="flex space-x-4 p-4 min-w-max">
-                    {[
-                        (Category::Vegetable, "채소", "bg-green-100", "/img/category/vegetables.png"),
-                        (Category::Meat, "고기", "bg-red-100", "/img/category/meat.png"),
-                        (Category::Seafood, "해산물", "bg-blue-100", "/img/category/seafood.png"),
-                        (Category::Dairy, "계란/유제품", "bg-yellow-100", "/img/category/eggs.png"),
-                        (Category::Fruit, "과일", "bg-purple-100", "/img/category/fruits.png"),
-                        (Category::Grain, "곡물", "bg-indigo-100", "/img/category/grains.png"),
-                        (Category::Sauce, "양념/소스", "bg-pink-100", "/img/category/sauce.png"),
-                        (Category::Drink, "음료", "bg-gray-100", "/img/category/drinks.png"),
-                        (Category::Other, "기타", "bg-orange-100", "/img/category/others.png"),
-                    ].into_iter().map(|(category, label, bg_color, icon)| {
-                        let category_clone = category.clone();
-                        let is_selected = move || selected_categories.get().contains(&category);
-                        let toggle_action = toggle_action.clone();
-
-                        view! {
-                            <button
-                                class=move || format!("flex flex-col items-center {}", if is_selected() { "opacity-100" } else { "opacity-50" })
-                                on:click=move |_| {
-                                    toggle_action.dispatch(category_clone.clone());
-                                }
-                            >
-                                <span class="text-xs">{label}</span>
-                            </button>
-                        }
-                    }).collect_view()}
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 p-4">
-            {move || filtered_profiles().into_iter().map(|profile| {
-                let profile_clone = profile.clone();
-                let is_selected = move || selected_items.get().iter().any(|p| p.id == profile.id);
-                let select_action = select_profile_action.clone();
+            <div >
+            <div class="p-4">
+            {move || {
+                let items = selected_items.get();
+                view! {
+                    <div>
+                        {items.into_iter().map(|item| {
+                            view! {
+                                <div class="bg-blue-100 rounded-full px-3 py-1 text-sm">
+                                    {item.username}
+                                </div>
+                            }
+                        }).collect_view()}
+                    </div>
+                }
+            }}
+        </div>
+        <div class="overflow-x-auto">
+        <div class="flex space-x-4 p-4 min-w-max">
+            {[
+                (Category::Vegetable, "채소", "bg-green-100"),
+                (Category::Meat, "고기", "bg-red-100"),
+                (Category::Seafood, "해산물", "bg-blue-100"),
+                (Category::Dairy, "계란/유제품", "bg-yellow-100"),
+                (Category::Fruit, "과일", "bg-purple-100"),
+                (Category::Grain, "곡물", "bg-indigo-100"),
+                (Category::Sauce, "양념/소스", "bg-pink-100"),
+                (Category::Drink, "음료", "bg-gray-100"),
+                (Category::Other, "기타", "bg-orange-100"),
+            ].into_iter().map(|(category, label, bg_color)| {
+                let category_clone = category.clone();
+                let is_selected = move || selected_category.get() == Some(category.clone());
 
                 view! {
                     <button
-                        class=move || {
-                            let base = "bg-white rounded-lg shadow p-4 flex flex-col items-center";
-                            if is_selected() {
-                                format!("{} border-2 border-red-500", base)
-                            } else {
-                                base.to_string()
-                            }
-                        }
-                        on:click=move |_| {
-                            select_action.dispatch(profile_clone.clone());
-                        }
+                        class=move || format!("flex flex-col items-center rounded-full px-4 py-2 {} {}",
+                            bg_color,
+                            if is_selected() { "opacity-100 font-bold" } else { "opacity-50" }
+                        )
+                        on:click=move |_| toggle_category(category_clone.clone())
                     >
-                        <div class="w-16 h-16 mb-2">
-                            <img
-                                src={profile.avatar}
-                                alt={profile.username.clone()}
-                                class="w-full h-full object-contain"
-                            />
-                        </div>
-                        <span class="text-sm font-medium text-gray-900">{profile.username}</span>
-                        <span class="text-xs text-gray-500">{profile.added_date}</span>
+                        <span class="text-xs">{label}</span>
                     </button>
                 }
             }).collect_view()}
         </div>
-          
-        </div>
-    }
+    </div>
+
+                <div class="grid grid-cols-2 gap-4 p-4">
+                {move || filtered_profiles().into_iter().map(|profile| {
+                    let profile_clone = profile.clone();
+                    let is_selected = move || selected_items.get().iter().any(|p| p.id == profile.id);
+                    let select_action = select_profile_action.clone();
+
+                    view! {
+                        <button
+                            class=move || {
+                                let base = "bg-white rounded-lg shadow p-4 flex flex-col items-center";
+                                if is_selected() {
+                                    format!("{} border-2 border-red-500", base)
+                                } else {
+                                    base.to_string()
+                                }
+                            }
+                            on:click=move |_| {
+                                select_action.dispatch(profile_clone.clone());
+                            }
+                        >
+                            <div class="w-16 h-16 mb-2">
+                                <img
+                                    src={profile.avatar}
+                                    alt={profile.username.clone()}
+                                    class="w-full h-full object-contain"
+                                />
+                            </div>
+                            <span class="text-sm font-medium text-gray-900">{profile.username}</span>
+                            <span class="text-xs text-gray-500">{profile.added_date}</span>
+                        </button>
+                    }
+                }).collect_view()}
+            </div>
+
+            </div>
+        }
 }

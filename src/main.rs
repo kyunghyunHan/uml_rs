@@ -4,7 +4,6 @@ use leptos_router::components::*;
 use leptos_router::path;
 use serde::{Deserialize, Serialize};
 mod pages;
-use leptos::prelude::create_action;
 use pages::{
     main::{__StoryGallery, Category, Profile},
     users::__Favorites,
