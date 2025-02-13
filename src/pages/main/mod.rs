@@ -1,5 +1,7 @@
 use crate::AppState;
 use leptos::prelude::*;
+use leptos_router::*; // Navigator를 사용하기 위해 추가
+
 use leptos_router::components::{A, Outlet, ParentRoute, Route, Router, Routes};
 use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -28,6 +30,7 @@ pub struct Profile {
 #[component]
 pub fn StoryGallery() -> impl IntoView {
     let state = use_context::<AppState>().expect("AppState should be provided");
+    let navigate = leptos_router::hooks::use_navigate();
 
     let selected_items = state.selected_items;
     let selected_category = state.selected_category;
@@ -160,7 +163,37 @@ pub fn StoryGallery() -> impl IntoView {
                     }
                 }).collect_view()}
             </div>
-
+            <div class="fixed bottom-16 left-0 right-0 p-4 bg-white border-t">
+        {
+            view! {
+                <button
+                    class=move || {
+                        let base = "w-full py-3 rounded-lg text-center";
+                        if selected_items.get().is_empty() {
+                            format!("{} bg-gray-300 text-gray-500", base)
+                        } else {
+                            format!("{} bg-red-500 text-white", base)
+                        }
+                    }
+                    disabled=move || selected_items.get().is_empty()
+                    on:click=move |_| {
+                        navigate("/recipes", Default::default());
+                    }
+                >
+                    <div class="flex items-center justify-center space-x-2">
+                        <span>{move || {
+                            let count = selected_items.get().len();
+                            if count > 0 {
+                                format!("{}개 재료로 만들 수 있는 레시피 보기", count)
+                            } else {
+                                "재료를 선택해주세요".to_string()
+                            }
+                        }}</span>
+                    </div>
+                </button>
+            }
+        }
+    </div>
             </div>
         }
 }

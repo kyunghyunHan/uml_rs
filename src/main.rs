@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 mod pages;
 use pages::{
     main::{__StoryGallery, Category, Profile},
+    recipes::__Recipes,
     users::__Favorites,
 };
 #[derive(Clone)]
@@ -60,6 +61,7 @@ pub fn App() -> impl IntoView {
         <Routes fallback=|| "Not found.">
         <Route path=path!("/") view=__StoryGallery/>
         <Route path=path!("/users") view=__Favorites/>
+        <Route path=path!("/recipes") view=__Recipes/> // 새로운 라우트 추가
       </Routes>
         </main>
         <div class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-4">
