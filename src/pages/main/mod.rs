@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 use leptos_router::components::{A, Outlet, ParentRoute, Route, Router, Routes};
 use serde::{Deserialize, Serialize};
-
+use crate::AppState;
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum Category {
     Vegetable, // 채소
@@ -16,19 +16,26 @@ pub enum Category {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-struct Profile {
-    id: i32,
-    username: String,
-    avatar: String,
-    categories: Vec<Category>,
-    posts: Vec<String>,
-    added_date: String,
+pub struct Profile {
+    pub id: i32,
+    pub username: String,
+    pub avatar: String,
+    pub categories: Vec<Category>,
+    pub posts: Vec<String>,
+    pub added_date: String,
 }
 
 #[component]
 pub fn StoryGallery() -> impl IntoView {
+    let state = use_context::<AppState>().expect("AppState should be provided");
+
+    let selected_items = state.selected_items;
+    let selected_categories = state.selected_categories;
+    let select_profile_action = state.select_profile_action;
+    let toggle_category_action = state.toggle_category_action;
     let (selected_profile, set_selected_profile) = create_signal::<Option<Profile>>(None);
     let (selected_categories, set_selected_categories) = create_signal::<Vec<Category>>(vec![]);
+    let (selected_items, set_selected_items) = create_signal::<Vec<Profile>>(vec![]);
     let profiles = vec![
         Profile {
             id: 1,
@@ -55,6 +62,21 @@ pub fn StoryGallery() -> impl IntoView {
             added_date: "25.02.10".to_string(),
         },
     ];
+    let select_profile_action = Action::new(move |profile: &Profile| {
+        let profile = profile.clone();
+        let items = selected_items;
+        let set_items = set_selected_items;
+
+        async move {
+            let mut current = items.get();
+            if let Some(pos) = current.iter().position(|x| x.id == profile.id) {
+                current.remove(pos);
+            } else {
+                current.push(profile);
+            }
+            set_items.set(current);
+        }
+    });
     let toggle_action = Action::new(move |category: &Category| {
         let category = category.clone();
         let selected = selected_categories;
@@ -99,6 +121,22 @@ pub fn StoryGallery() -> impl IntoView {
 
     view! {
         <div >
+        <div class="p-4">
+        {move || {
+            let items = selected_items.get();
+            view! {
+                <div>
+                    {items.into_iter().map(|item| {
+                        view! {
+                            <div class="bg-blue-100 rounded-full px-3 py-1 text-sm">
+                                {item.username}
+                            </div>
+                        }
+                    }).collect_view()}
+                </div>
+            }
+        }}
+    </div>
             <div class="overflow-x-auto">
                 <div class="flex space-x-4 p-4 min-w-max">
                     {[
@@ -131,44 +169,39 @@ pub fn StoryGallery() -> impl IntoView {
             </div>
 
             <div class="grid grid-cols-2 gap-4 p-4">
-                {move || filtered_profiles().into_iter().map(|profile| {
-                    let profile_clone = profile.clone();
-                    view! {
-                        <button
-                            class="bg-white rounded-lg shadow p-4 flex flex-col items-center"
-                        >
-                            <div class="w-16 h-16 mb-2">
-                                <img
-                                    src={profile.avatar}
-                                    alt={profile.username.clone()}
-                                    class="w-full h-full object-contain"
-                                />
-                            </div>
-                            <span class="text-sm font-medium text-gray-900">{profile.username}</span>
-                            <span class="text-xs text-gray-500">{profile.added_date}</span>
-                        </button>
-                    }
-                }).collect_view()}
-            </div>
+            {move || filtered_profiles().into_iter().map(|profile| {
+                let profile_clone = profile.clone();
+                let is_selected = move || selected_items.get().iter().any(|p| p.id == profile.id);
+                let select_action = select_profile_action.clone();
 
-            // <div class="fixed bottom-16 left-0 right-0 p-4 bg-white border-t">
-            //     <button class="w-full py-3 bg-red-500 text-white rounded-lg text-center">
-            //         "냉장고 파먹기"
-            //     </button>
-            // </div>
-            <div class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-4">
-               <A href="/users">
-                <button class="flex flex-col items-center text-blue-500">
-                    <span class="text-xs mt-1">"나의 냉장고"</span>
-                </button>
-                </A>
-                <button class="flex flex-col items-center">
-                    <span class="text-xs mt-1">"모든 레시피"</span>
-                </button>
-                <button class="flex flex-col items-center">
-                    <span class="text-xs mt-1">"즐겨찾기"</span>
-                </button>
-            </div>
+                view! {
+                    <button
+                        class=move || {
+                            let base = "bg-white rounded-lg shadow p-4 flex flex-col items-center";
+                            if is_selected() {
+                                format!("{} border-2 border-red-500", base)
+                            } else {
+                                base.to_string()
+                            }
+                        }
+                        on:click=move |_| {
+                            select_action.dispatch(profile_clone.clone());
+                        }
+                    >
+                        <div class="w-16 h-16 mb-2">
+                            <img
+                                src={profile.avatar}
+                                alt={profile.username.clone()}
+                                class="w-full h-full object-contain"
+                            />
+                        </div>
+                        <span class="text-sm font-medium text-gray-900">{profile.username}</span>
+                        <span class="text-xs text-gray-500">{profile.added_date}</span>
+                    </button>
+                }
+            }).collect_view()}
+        </div>
+          
         </div>
     }
 }

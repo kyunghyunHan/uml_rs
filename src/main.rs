@@ -6,56 +6,60 @@ use serde::{Deserialize, Serialize};
 mod pages;
 use leptos::prelude::create_action;
 use pages::{
-    main::{__StoryGallery, Category},
+    main::{__StoryGallery, Category, Profile},
     users::__Favorites,
 };
 #[derive(Clone)]
-enum CategoryAction {
-    Add(Category),
-    Remove(Category),
-    Clear,
-}
-
-// 전역 상태를 위한 컨텍스트 타입 정의
-#[derive(Clone)]
-struct CategoryState {
-    selected: RwSignal<Vec<Category>>,
-    action: Action<CategoryAction, ()>,
+struct AppState {
+    selected_items: RwSignal<Vec<Profile>>,
+    selected_categories: RwSignal<Vec<Category>>,
+    select_profile_action: Action<Profile, ()>,
+    toggle_category_action: Action<Category, ()>,
 }
 #[component]
 pub fn App() -> impl IntoView {
+    let selected_items = create_rw_signal(vec![]);
     let selected_categories = create_rw_signal(vec![]);
-
-    // Action 생성 - input을 참조로 받고 내부에서 clone
-    let category_action = Action::new(move |input: &CategoryAction| {
-        let action = input.clone(); // clone the input for the async block
-        let selected = selected_categories; // capture the signal
+    let select_profile_action: Action<Profile, ()> = Action::new(move |profile: &Profile| {
+        let profile = profile.clone();
+        let items = selected_items;
 
         async move {
-            let mut current = selected.get();
-            match action {
-                CategoryAction::Add(category) => {
-                    if !current.contains(&category) {
-                        current.push(category);
-                    }
-                }
-                CategoryAction::Remove(category) => {
-                    if let Some(pos) = current.iter().position(|x| x == &category) {
-                        current.remove(pos);
-                    }
-                }
-                CategoryAction::Clear => current.clear(),
+            let mut current = items.get();
+            if let Some(pos) = current.iter().position(|x: &Profile| x.id == profile.id) {
+                current.remove(pos);
+            } else {
+                current.push(profile);
             }
-            selected.set(current);
+            items.set(current);
+            ()
         }
     });
-    // 상태와 액션을 context로 제공
-    let state = CategoryState {
-        selected: selected_categories,
-        action: category_action,
+
+    let toggle_category_action: Action<Category, ()> = Action::new(move |category: &Category| {
+        let category = category.clone();
+        let categories = selected_categories;
+
+        async move {
+            let mut current = categories.get();
+            if let Some(pos) = current.iter().position(|x| x == &category) {
+                current.remove(pos);
+            } else {
+                current.push(category);
+            }
+            categories.set(current);
+            ()
+        }
+    });
+
+    // 상태를 Context로 제공
+    let state = AppState {
+        selected_items,
+        selected_categories,
+        select_profile_action,
+        toggle_category_action,
     };
     provide_context(state);
-
     view! {
       <Router>
       <div class="w-full max-w-2xl mx-auto bg-white">
@@ -78,6 +82,19 @@ pub fn App() -> impl IntoView {
         <Route path=path!("/users") view=__Favorites/>
       </Routes>
         </main>
+        <div class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-4">
+        <A href="/users">
+            <button class="flex flex-col items-center text-blue-500">
+                <span class="text-xs mt-1">"나의 냉장고"</span>
+            </button>
+        </A>
+        <button class="flex flex-col items-center">
+            <span class="text-xs mt-1">"모든 레시피"</span>
+        </button>
+        <button class="flex flex-col items-center">
+            <span class="text-xs mt-1">"즐겨찾기"</span>
+        </button>
+    </div>
         </div>
       </Router>
     }
