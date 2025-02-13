@@ -4,10 +4,58 @@ use leptos_router::components::*;
 use leptos_router::path;
 use serde::{Deserialize, Serialize};
 mod pages;
-use pages::{main::__StoryGallery, users::__Favorites};
+use leptos::prelude::create_action;
+use pages::{
+    main::{__StoryGallery, Category},
+    users::__Favorites,
+};
+#[derive(Clone)]
+enum CategoryAction {
+    Add(Category),
+    Remove(Category),
+    Clear,
+}
 
+// 전역 상태를 위한 컨텍스트 타입 정의
+#[derive(Clone)]
+struct CategoryState {
+    selected: RwSignal<Vec<Category>>,
+    action: Action<CategoryAction, ()>,
+}
 #[component]
 pub fn App() -> impl IntoView {
+    let selected_categories = create_rw_signal(vec![]);
+
+    // Action 생성 - input을 참조로 받고 내부에서 clone
+    let category_action = Action::new(move |input: &CategoryAction| {
+        let action = input.clone(); // clone the input for the async block
+        let selected = selected_categories; // capture the signal
+
+        async move {
+            let mut current = selected.get();
+            match action {
+                CategoryAction::Add(category) => {
+                    if !current.contains(&category) {
+                        current.push(category);
+                    }
+                }
+                CategoryAction::Remove(category) => {
+                    if let Some(pos) = current.iter().position(|x| x == &category) {
+                        current.remove(pos);
+                    }
+                }
+                CategoryAction::Clear => current.clear(),
+            }
+            selected.set(current);
+        }
+    });
+    // 상태와 액션을 context로 제공
+    let state = CategoryState {
+        selected: selected_categories,
+        action: category_action,
+    };
+    provide_context(state);
+
     view! {
       <Router>
       <div class="w-full max-w-2xl mx-auto bg-white">

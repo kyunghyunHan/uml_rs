@@ -3,7 +3,7 @@ use leptos_router::components::{A, Outlet, ParentRoute, Route, Router, Routes};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-enum Category {
+pub enum Category {
     Vegetable, // 채소
     Meat,      // 고기
     Seafood,   // 해산물
@@ -29,7 +29,6 @@ struct Profile {
 pub fn StoryGallery() -> impl IntoView {
     let (selected_profile, set_selected_profile) = create_signal::<Option<Profile>>(None);
     let (selected_categories, set_selected_categories) = create_signal::<Vec<Category>>(vec![]);
-
     let profiles = vec![
         Profile {
             id: 1,
@@ -56,7 +55,21 @@ pub fn StoryGallery() -> impl IntoView {
             added_date: "25.02.10".to_string(),
         },
     ];
+    let toggle_action = Action::new(move |category: &Category| {
+        let category = category.clone();
+        let selected = selected_categories;
+        let set_selected = set_selected_categories;
 
+        async move {
+            let mut current = selected.get();
+            if let Some(pos) = current.iter().position(|x| x == &category) {
+                current.remove(pos);
+            } else {
+                current.push(category);
+            }
+            set_selected.set(current);
+        }
+    });
     let filtered_profiles = move || {
         let categories = selected_categories.get();
         if categories.is_empty() {
@@ -74,16 +87,15 @@ pub fn StoryGallery() -> impl IntoView {
                 .collect()
         }
     };
-
-    let toggle_category = move |category: Category| {
-        let mut current = selected_categories.get();
-        if let Some(pos) = current.iter().position(|x| x == &category) {
-            current.remove(pos);
-        } else {
-            current.push(category);
-        }
-        set_selected_categories.set(current); // 수정된 부분
-    };
+    // let toggle_category = move |category: Category| {
+    //     let mut current = selected_categories.get();
+    //     if let Some(pos) = current.iter().position(|x| x == &category) {
+    //         current.remove(pos);
+    //     } else {
+    //         current.push(category);
+    //     }
+    //     set_selected_categories.set(current); // 수정된 부분
+    // };
 
     view! {
         <div >
@@ -102,18 +114,15 @@ pub fn StoryGallery() -> impl IntoView {
                     ].into_iter().map(|(category, label, bg_color, icon)| {
                         let category_clone = category.clone();
                         let is_selected = move || selected_categories.get().contains(&category);
+                        let toggle_action = toggle_action.clone();
+
                         view! {
                             <button
                                 class=move || format!("flex flex-col items-center {}", if is_selected() { "opacity-100" } else { "opacity-50" })
-                                on:click=move |_| toggle_category(category_clone.clone())
+                                on:click=move |_| {
+                                    toggle_action.dispatch(category_clone.clone());
+                                }
                             >
-                                // <div class=format!("w-16 h-16 rounded-full {} flex items-center justify-center mb-1", bg_color)>
-                                //     // <img
-                                //     //     src=icon
-                                //     //     alt=label
-                                //     //     class="w-8 h-8"
-                                //     // />
-                                // </div>
                                 <span class="text-xs">{label}</span>
                             </button>
                         }
