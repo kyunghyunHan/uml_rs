@@ -10,15 +10,14 @@ use pages::{
 };
 #[derive(Clone)]
 struct AppState {
-    selected_items: RwSignal<Vec<Profile>>,
-    selected_categories: RwSignal<Vec<Category>>,
+    selected_items: RwSignal<Vec<Profile>>, // 선택된 프로필들
+    selected_category: RwSignal<Option<Category>>, // 현재 선택된 카테고리 (단일 선택)
     select_profile_action: Action<Profile, ()>,
-    toggle_category_action: Action<Category, ()>,
 }
 #[component]
 pub fn App() -> impl IntoView {
     let selected_items = create_rw_signal(vec![]);
-    let selected_categories = create_rw_signal(vec![]);
+    let selected_category = create_rw_signal(None);
     let select_profile_action: Action<Profile, ()> = Action::new(move |profile: &Profile| {
         let profile = profile.clone();
         let items = selected_items;
@@ -34,31 +33,13 @@ pub fn App() -> impl IntoView {
             ()
         }
     });
-
-    let toggle_category_action: Action<Category, ()> = Action::new(move |category: &Category| {
-        let category = category.clone();
-        let categories = selected_categories;
-
-        async move {
-            let mut current = categories.get();
-            if let Some(pos) = current.iter().position(|x| x == &category) {
-                current.remove(pos);
-            } else {
-                current.push(category);
-            }
-            categories.set(current);
-            ()
-        }
-    });
-
-    // 상태를 Context로 제공
     let state = AppState {
         selected_items,
-        selected_categories,
+        selected_category,
         select_profile_action,
-        toggle_category_action,
     };
     provide_context(state);
+
     view! {
       <Router>
       <div class="w-full max-w-2xl mx-auto bg-white">

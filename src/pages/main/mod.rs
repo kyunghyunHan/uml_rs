@@ -30,12 +30,8 @@ pub fn StoryGallery() -> impl IntoView {
     let state = use_context::<AppState>().expect("AppState should be provided");
 
     let selected_items = state.selected_items;
-    let selected_categories = state.selected_categories;
+    let selected_category = state.selected_category;
     let select_profile_action = state.select_profile_action;
-    let toggle_category_action = state.toggle_category_action;
-    let (selected_profile, set_selected_profile) = create_signal::<Option<Profile>>(None);
-    let (selected_category, set_selected_category) = create_signal::<Option<Category>>(None);
-    let (selected_items, set_selected_items) = create_signal::<Vec<Profile>>(vec![]);
     let profiles = vec![
         Profile {
             id: 1,
@@ -62,31 +58,14 @@ pub fn StoryGallery() -> impl IntoView {
             added_date: "25.02.10".to_string(),
         },
     ];
-    let select_profile_action = Action::new(move |profile: &Profile| {
-        let profile = profile.clone();
-        let items = selected_items;
-        let set_items = set_selected_items;
-
-        async move {
-            let mut current = items.get();
-            if let Some(pos) = current.iter().position(|x| x.id == profile.id) {
-                current.remove(pos);
-            } else {
-                current.push(profile);
-            }
-            set_items.set(current);
-        }
-    });
     let toggle_category = move |new_category: Category| {
         let current = selected_category.get();
         match current {
             Some(cat) if cat == new_category => {
-                // 같은 카테고리를 다시 클릭하면 선택 해제
-                set_selected_category.set(None);
+                selected_category.set(None);
             }
             _ => {
-                // 다른 카테고리를 클릭하면 해당 카테고리로 변경
-                set_selected_category.set(Some(new_category));
+                selected_category.set(Some(new_category));
             }
         }
     };
@@ -98,6 +77,7 @@ pub fn StoryGallery() -> impl IntoView {
             .filter(|profile| profile.categories.contains(&category))
             .collect(),
     };
+
     view! {
             <div >
             <div class="p-4">
