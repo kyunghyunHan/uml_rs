@@ -440,7 +440,7 @@ impl UmlApp {
                 ui.small(match self.tool {
                     Tool::Select => "선택 · Alt+클릭 겹친 대상 전환",
                     Tool::Add(_) => "캔버스 클릭으로 추가 · Esc 취소",
-                    Tool::Connect(_) => "시작 → 도착 클릭 · Esc 취소",
+                    Tool::Connect(_) => "시작 → 도착 클릭 또는 드래그 · Esc 취소",
                 });
             });
         });
@@ -882,6 +882,17 @@ impl UmlApp {
                                 }
                                 if ui
                                     .selectable_label(self.tool == Tool::Connect(k), k.label())
+                                    .on_hover_text(match (d.kind, k) {
+                                        (DiagramKind::UseCase, RelationKind::Association) =>
+                                            "액터 ↔ 유스케이스를 연결합니다. 유스케이스끼리는 include / extend / 일반화를 선택하세요.",
+                                        (_, RelationKind::Include) => "포함하는 유스케이스 → 포함되는 유스케이스",
+                                        (_, RelationKind::Extend) => "확장하는 유스케이스 → 기본 유스케이스",
+                                        (_, RelationKind::Generalization) => "하위 요소 → 상위 요소 (액터끼리, 유스케이스끼리, 클래스끼리, 인터페이스끼리)",
+                                        (_, RelationKind::Realization) => "구현 클래스 → 인터페이스",
+                                        (_, RelationKind::Aggregation | RelationKind::Composition) => "전체 → 부분 (다이아몬드는 시작 요소 쪽에 표시됩니다)",
+                                        (_, RelationKind::Comment) => "한쪽 대상을 노트로 선택하세요",
+                                        _ => "시작 요소 → 도착 요소를 클릭하거나 드래그하세요",
+                                    })
                                     .clicked()
                                 {
                                     self.tool = Tool::Connect(k);
@@ -890,6 +901,21 @@ impl UmlApp {
                                 }
                             }
                         });
+                        if let Tool::Connect(kind) = self.tool {
+                            ui.label(format!(
+                                "{} · {}",
+                                kind.label(),
+                                if self.canvas.connection.is_some() {
+                                    "도착 요소를 선택하세요"
+                                } else {
+                                    "시작 요소를 선택하세요"
+                                },
+                            ));
+                            if ui.button("연결 취소").clicked() {
+                                self.tool = Tool::Select;
+                                self.canvas.connection = None;
+                            }
+                        }
                     } else {
                         ui.menu_button("시퀀스 추가", |ui| {
                             sequence_add(ui, &mut d.sequence, &mut self.canvas.selection)
@@ -997,7 +1023,7 @@ impl UmlApp {
                     ui.small(match self.tool {
                         Tool::Select => "드래그 선택/이동 · 모서리 핸들로 크기 조절",
                         Tool::Add(_) => "캔버스를 클릭해 추가",
-                        Tool::Connect(_) => "시작 요소 → 도착 요소 순서로 클릭 · Esc 취소",
+                        Tool::Connect(_) => "시작 → 도착 클릭 또는 드래그 · Esc 취소",
                     });
                 });
                 self.canvas_size = ui.available_size();
@@ -1557,6 +1583,121 @@ mod tests {
             app.project.as_ref().unwrap().diagrams[0].nodes.len(),
             before.diagrams[0].nodes.len() - 1
         );
+    }
+    #[test]
+    fn usecase_relation_menu_and_canvas_clicks_create_one_undoable_relation() {
+        fn run(
+            ctx: &egui::Context,
+            app: &mut UmlApp,
+            frame: &mut eframe::Frame,
+            events: Vec<egui::Event>,
+        ) -> egui::FullOutput {
+            ctx.run(
+                egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(1440., 900.),
+                    )),
+                    events,
+                    ..Default::default()
+                },
+                |ctx| app.update(ctx, frame),
+            )
+        }
+        fn text_center(output: &egui::FullOutput, label: &str) -> egui::Pos2 {
+            fn find(shape: &egui::Shape, label: &str) -> Option<egui::Pos2> {
+                match shape {
+                    egui::Shape::Text(t) if t.galley.job.text == label => {
+                        Some(t.pos + t.galley.size() / 2.)
+                    }
+                    egui::Shape::Vec(shapes) => shapes.iter().find_map(|s| find(s, label)),
+                    _ => None,
+                }
+            }
+            output
+                .shapes
+                .iter()
+                .find_map(|s| find(&s.shape, label))
+                .expect(label)
+        }
+        fn click(
+            ctx: &egui::Context,
+            app: &mut UmlApp,
+            frame: &mut eframe::Frame,
+            pos: egui::Pos2,
+        ) -> egui::FullOutput {
+            run(ctx, app, frame, vec![egui::Event::PointerMoved(pos)]);
+            run(
+                ctx,
+                app,
+                frame,
+                vec![egui::Event::PointerButton {
+                    pos,
+                    button: egui::PointerButton::Primary,
+                    pressed: true,
+                    modifiers: egui::Modifiers::NONE,
+                }],
+            );
+            run(
+                ctx,
+                app,
+                frame,
+                vec![egui::Event::PointerButton {
+                    pos,
+                    button: egui::PointerButton::Primary,
+                    pressed: false,
+                    modifiers: egui::Modifiers::NONE,
+                }],
+            )
+        }
+        fn origin(ctx: &egui::Context, app: &UmlApp) -> egui::Pos2 {
+            let bottom = egui::containers::panel::PanelState::load(ctx, egui::Id::new("status"))
+                .unwrap()
+                .rect
+                .top();
+            egui::pos2(0., bottom - app.canvas_size.y)
+        }
+        let ctx = egui::Context::default();
+        let mut app = app(&ctx);
+        let mut p = Project::new("test", DiagramKind::UseCase, "test");
+        p.diagrams[0].nodes = vec![
+            Node::new(NodeKind::Actor, Point::new(100., 100.)),
+            Node::new(NodeKind::UseCase, Point::new(500., 200.)),
+        ];
+        app.replace(p, None, true);
+        app.show_project = false;
+        app.show_properties = false;
+        let mut frame = eframe::Frame::_new_kittest();
+        let output = run(&ctx, &mut app, &mut frame, vec![]);
+        click(
+            &ctx,
+            &mut app,
+            &mut frame,
+            text_center(&output, "관계 연결"),
+        );
+        let output = run(&ctx, &mut app, &mut frame, vec![]);
+        let pos = text_center(&output, "연관");
+        click(&ctx, &mut app, &mut frame, pos);
+        assert!(matches!(app.tool, Tool::Connect(RelationKind::Association)));
+        run(&ctx, &mut app, &mut frame, vec![]);
+        let d = &app.project.as_ref().unwrap().diagrams[0];
+        let source = d.nodes[0].id;
+        let pos = canvas::world_to_screen(Point::new(104., 135.), origin(&ctx, &app), d.view);
+        click(&ctx, &mut app, &mut frame, pos);
+        assert_eq!(app.canvas.connection, Some(source));
+        let d = &app.project.as_ref().unwrap().diagrams[0];
+        let pos = canvas::world_to_screen(d.nodes[1].layout.center(), origin(&ctx, &app), d.view);
+        click(&ctx, &mut app, &mut frame, pos);
+        assert_eq!(app.project.as_ref().unwrap().diagrams[0].relations.len(), 1);
+        assert!(app.history.can_undo());
+        let _ = ctx.run(key(Key::Z, true), |ctx| app.update(ctx, &mut frame));
+        assert!(
+            app.project.as_ref().unwrap().diagrams[0]
+                .relations
+                .is_empty()
+        );
+        let _ = ctx.run(key(Key::Y, true), |ctx| app.update(ctx, &mut frame));
+        assert_eq!(app.project.as_ref().unwrap().diagrams[0].relations.len(), 1);
     }
     #[test]
     fn properties_panel_stays_bounded_across_frames_and_window_sizes() {

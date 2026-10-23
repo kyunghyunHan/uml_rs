@@ -20,6 +20,7 @@ pub struct CanvasState {
     pub grid: bool,
     pub snap: bool,
     pub connection: Option<Id>,
+    connection_drag: Option<Id>,
     drag: Option<Drag>,
     pub finished_drag: bool,
     pub edit_name: Option<Id>,
@@ -57,6 +58,25 @@ pub fn fit(d: &mut Diagram, size: egui::Vec2) {
         );
     }
 }
+
+// Connecting targets nodes, even when a relation label or an existing line is
+// painted above them. Actors use their whole selectable box, not just the strokes.
+fn connection_target(d: &Diagram, sc: &scene::Scene, p: Point, tolerance: f32) -> Option<Id> {
+    let hits = sc.hits(p, tolerance);
+    d.nodes
+        .iter()
+        .rev()
+        .find(|n| {
+            !matches!(n.kind, NodeKind::Boundary | NodeKind::Package)
+                && (n.layout.contains(p) || hits.contains(&n.id))
+        })
+        .map(|n| n.id)
+        // Container interiors remain transparent, so they cannot swallow a click.
+        .or_else(|| {
+            hits.into_iter()
+                .find(|id| d.nodes.iter().any(|n| n.id == *id))
+        })
+}
 impl CanvasState {
     pub fn new() -> Self {
         Self {
@@ -68,7 +88,30 @@ impl CanvasState {
     pub fn clear(&mut self) {
         self.selection.clear();
         self.connection = None;
+        self.connection_drag = None;
         self.drag = None;
+    }
+    fn connect_to(&mut self, d: &mut Diagram, target: Id, kind: RelationKind) -> bool {
+        let Some(source) = self.connection.take() else {
+            self.connection = Some(target);
+            self.notice = None;
+            return false;
+        };
+        let relation = Relation::new(source, target, kind);
+        let id = relation.id;
+        match d.add_relation(relation) {
+            Ok(()) => {
+                self.selection.clear();
+                self.selection.insert(id);
+                self.notice = None;
+                true
+            }
+            Err(reason) => {
+                self.notice = Some(reason);
+                self.connection = Some(source);
+                false
+            }
+        }
     }
     pub fn ui(&mut self, ui: &mut egui::Ui, d: &mut Diagram, tool: &mut Tool) -> bool {
         for n in &mut d.nodes {
@@ -81,6 +124,21 @@ impl CanvasState {
         self.finished_drag = false;
         painter.rect_filled(rect, 0., Color32::from_rgb(247, 249, 252));
         let pointer = ui.input(|i| i.pointer.hover_pos());
+        if ui.is_enabled()
+            && !ui.ctx().wants_keyboard_input()
+            && ui.input(|i| i.key_pressed(Key::Escape))
+        {
+            *tool = Tool::Select;
+            self.notice = None;
+        }
+        if !matches!(*tool, Tool::Connect(_))
+            || self
+                .connection
+                .is_some_and(|id| !d.nodes.iter().any(|n| n.id == id))
+        {
+            self.connection = None;
+            self.connection_drag = None;
+        }
         if response.hovered() {
             let (scroll, zoom, mods) =
                 ui.input(|i| (i.smooth_scroll_delta, i.zoom_delta(), i.modifiers));
@@ -132,7 +190,8 @@ impl CanvasState {
             d.view.pan.y += delta.y;
             self.drag = None;
         }
-        if response.double_clicked()
+        if *tool == Tool::Select
+            && response.double_clicked()
             && let Some(pos) = pointer
             && let Some(id) = sc.hit(screen_to_world(pos, origin, d.view), 7. / d.view.zoom)
         {
@@ -211,25 +270,12 @@ impl CanvasState {
                     *tool = Tool::Select;
                 }
                 Tool::Connect(kind) => {
-                    if let Some(node) = hit.filter(|i| d.nodes.iter().any(|n| n.id == *i)) {
-                        if let Some(source) = self.connection.take() {
-                            let r = Relation::new(source, node, kind);
-                            let rid = r.id;
-                            match d.add_relation(r) {
-                                Ok(()) => {
-                                    self.selection.clear();
-                                    self.selection.insert(rid);
-                                    changed = true;
-                                    self.notice = None;
-                                }
-                                Err(e) => {
-                                    self.notice = Some(e);
-                                    self.connection = Some(source);
-                                }
-                            }
-                        } else {
-                            self.connection = Some(node);
+                    self.connection_drag = None;
+                    if let Some(node) = connection_target(d, &sc, w, 7. / d.view.zoom) {
+                        if self.connection.is_none() {
+                            self.connection_drag = Some(node);
                         }
+                        changed |= self.connect_to(d, node, kind);
                     }
                 }
                 Tool::Select => {
@@ -356,6 +402,23 @@ impl CanvasState {
             }
         }
         if ui.input(|i| i.pointer.button_released(PointerButton::Primary))
+            && let Some(source) = self.connection_drag.take()
+            && self.connection == Some(source)
+            && response.drag_stopped_by(PointerButton::Primary)
+            && response.contains_pointer()
+            && let Tool::Connect(kind) = *tool
+            && let Some(pos) = pointer
+            && let Some(target) = connection_target(
+                d,
+                &sc,
+                screen_to_world(pos, origin, d.view),
+                7. / d.view.zoom,
+            )
+            && target != source
+        {
+            changed |= self.connect_to(d, target, kind);
+        }
+        if ui.input(|i| i.pointer.button_released(PointerButton::Primary))
             && self.drag.take().is_some()
         {
             self.finished_drag = true;
@@ -401,9 +464,7 @@ impl CanvasState {
             && let Some(node) = d.nodes.iter().find(|n| n.id == source)
         {
             let w = screen_to_world(pos, origin, d.view);
-            let target = sc
-                .hit(w, 7. / d.view.zoom)
-                .filter(|id| d.nodes.iter().any(|n| n.id == *id));
+            let target = connection_target(d, &sc, w, 7. / d.view.zoom);
             let valid = target
                 .map(|target| crate::validation::relation(d, &Relation::new(source, target, kind)));
             let color = if valid.as_ref().is_some_and(Result::is_err) {
@@ -513,13 +574,6 @@ impl CanvasState {
                 15.,
                 Stroke::new(2_f32, Color32::from_rgb(229, 155, 49)),
             );
-        }
-        if response.hovered()
-            && !ui.ctx().wants_keyboard_input()
-            && ui.input(|i| i.key_pressed(Key::Escape))
-        {
-            *tool = Tool::Select;
-            self.connection = None;
         }
         changed
     }
