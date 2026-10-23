@@ -14,6 +14,31 @@ pub fn connection_start(d: &Diagram, source: Id, kind: RelationKind) -> Result<(
         .iter()
         .find(|n| n.id == source)
         .ok_or("시작 요소가 없습니다. 시작 대상을 다시 선택하세요")?;
+    if !RelationKind::allowed(d.kind).contains(&kind) {
+        return Err("이 다이어그램에서 사용할 수 없는 관계입니다.".into());
+    }
+    if d.kind == DiagramKind::Class && kind != RelationKind::Comment {
+        let allowed = match kind {
+            RelationKind::Realization => {
+                matches!(node.kind, NodeKind::Class | NodeKind::AbstractClass)
+            }
+            RelationKind::Generalization => matches!(
+                node.kind,
+                NodeKind::Class | NodeKind::AbstractClass | NodeKind::Interface
+            ),
+            _ => node.is_classifier(),
+        };
+        if !allowed {
+            return Err(if kind == RelationKind::Realization {
+                "시작 대상으로 구현 클래스 또는 추상 클래스를 선택하세요."
+            } else if kind == RelationKind::Generalization {
+                "시작 대상으로 클래스 또는 인터페이스를 선택하세요."
+            } else {
+                "시작 대상으로 클래스·인터페이스·열거형을 선택하세요."
+            }
+            .into());
+        }
+    }
     if d.kind == DiagramKind::UseCase {
         let allowed = match kind {
             RelationKind::Include | RelationKind::Extend => node.kind == NodeKind::UseCase,
@@ -38,7 +63,75 @@ pub fn connection_start(d: &Diagram, source: Id, kind: RelationKind) -> Result<(
     }
     Ok(())
 }
+/// Validate syntax and inclusive ranges; `None` is an unbounded upper limit.
+pub fn multiplicity(text: &str) -> Result<Vec<(u64, Option<u64>)>, String> {
+    let text = text.trim();
+    if text.is_empty() {
+        return Ok(vec![]);
+    }
+    let number = |s: &str| -> Result<u64, String> {
+        let s = s.trim();
+        if s.is_empty() || !s.bytes().all(|b| b.is_ascii_digit()) {
+            return Err("0, 1, *, 0..1, 1..*, 2..5 형식을 사용하세요".into());
+        }
+        s.parse().map_err(|_| "다중성 숫자가 너무 큽니다".into())
+    };
+    text.split(',')
+        .map(|part| {
+            let part = part.trim();
+            if part == "*" {
+                return Ok((0, None));
+            }
+            if let Some((lo, hi)) = part.split_once("..") {
+                let lo = number(lo)?;
+                let hi = if hi.trim() == "*" {
+                    None
+                } else {
+                    Some(number(hi)?)
+                };
+                if hi.is_some_and(|hi| hi < lo) {
+                    return Err("다중성 하한은 상한보다 클 수 없습니다".into());
+                }
+                Ok((lo, hi))
+            } else {
+                let n = number(part)?;
+                Ok((n, Some(n)))
+            }
+        })
+        .collect()
+}
+
 pub fn relation(d: &Diagram, candidate: &Relation) -> Result<(), String> {
+    relation_endpoints(d, candidate)?;
+    for (label, text) in [
+        ("시작", &candidate.source_multiplicity),
+        ("도착", &candidate.target_multiplicity),
+    ] {
+        let ranges = multiplicity(text).map_err(|e| format!("{label} 다중성: {e}"))?;
+        if candidate.kind == RelationKind::Composition
+            && label == "시작"
+            && ranges.iter().any(|(_, hi)| hi.is_none_or(|hi| hi > 1))
+        {
+            return Err(
+                "합성의 전체(시작) 쪽 다중성은 1을 초과할 수 없습니다. 1 또는 0..1을 사용하세요."
+                    .into(),
+            );
+        }
+    }
+    Ok(())
+}
+
+/// Endpoint menus use exactly the same endpoint rules, independent of incomplete text edits.
+pub fn endpoint_candidate(d: &Diagram, r: &Relation, node: Id, source: bool) -> Result<(), String> {
+    let mut candidate = r.clone();
+    if source {
+        candidate.source = node;
+    } else {
+        candidate.target = node;
+    }
+    relation_endpoints(d, &candidate)
+}
+fn relation_endpoints(d: &Diagram, candidate: &Relation) -> Result<(), String> {
     let a = d
         .nodes
         .iter()

@@ -144,7 +144,7 @@ pub fn segment_distance(p: Point, a: Point, b: Point) -> f32 {
     let t = (((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy).max(0.0001)).clamp(0., 1.);
     ((p.x - a.x - t * dx).powi(2) + (p.y - a.y - t * dy).powi(2)).sqrt()
 }
-fn primitive_bounds(p: &Primitive) -> Layout {
+pub fn primitive_bounds(p: &Primitive) -> Layout {
     match p {
         Primitive::Rect { rect, .. } | Primitive::Ellipse(rect) => *rect,
         Primitive::Text {
@@ -197,6 +197,110 @@ fn arrow(s: &mut Scene, id: Id, end: Point, previous: Point, kind: u8) {
             },
         },
     );
+}
+fn navigation(s: &mut Scene, id: Id, end: Point, previous: Point, state: Navigability, gap: f32) {
+    let len = (previous.x - end.x).hypot(previous.y - end.y).max(0.01);
+    let u = Point::new((previous.x - end.x) / len, (previous.y - end.y) / len);
+    let tip = Point::new(end.x + u.x * gap, end.y + u.y * gap);
+    match state {
+        Navigability::Unspecified => {}
+        Navigability::Navigable => arrow(
+            s,
+            id,
+            tip,
+            Point::new(tip.x + u.x * 16., tip.y + u.y * 16.),
+            0,
+        ),
+        Navigability::NonNavigable => {
+            let c = Point::new(tip.x + u.x * 9., tip.y + u.y * 9.);
+            for (a, b) in [((-4., -4.), (4., 4.)), ((-4., 4.), (4., -4.))] {
+                s.line(
+                    id,
+                    vec![
+                        Point::new(c.x + a.0, c.y + a.1),
+                        Point::new(c.x + b.0, c.y + b.1),
+                    ],
+                    false,
+                );
+            }
+        }
+    }
+}
+/// The palette, canvas, SVG and PNG all use these same line/decoration primitives.
+pub fn relation_line(
+    s: &mut Scene,
+    id: Id,
+    kind: RelationKind,
+    source_navigation: Navigability,
+    target_navigation: Navigability,
+    pts: &[Point],
+) {
+    if pts.len() < 2 {
+        return;
+    }
+    let end = *pts.last().unwrap();
+    let start = pts[0];
+    s.line(
+        id,
+        pts.to_vec(),
+        matches!(
+            kind,
+            RelationKind::Dependency
+                | RelationKind::Realization
+                | RelationKind::Include
+                | RelationKind::Extend
+                | RelationKind::Comment
+        ),
+    );
+    match kind {
+        RelationKind::Generalization | RelationKind::Realization => {
+            arrow(s, id, end, pts[pts.len() - 2], 1)
+        }
+        RelationKind::Aggregation | RelationKind::Composition => arrow(
+            s,
+            id,
+            start,
+            pts[1],
+            if kind == RelationKind::Composition {
+                4
+            } else {
+                3
+            },
+        ),
+        RelationKind::Association | RelationKind::Comment => {}
+        _ => arrow(s, id, end, pts[pts.len() - 2], 0),
+    }
+    if kind.has_navigation() {
+        navigation(
+            s,
+            id,
+            start,
+            pts[1],
+            source_navigation,
+            if matches!(kind, RelationKind::Aggregation | RelationKind::Composition) {
+                26.
+            } else {
+                0.
+            },
+        );
+        navigation(s, id, end, pts[pts.len() - 2], target_navigation, 0.);
+    }
+}
+pub fn relation_preview(
+    kind: RelationKind,
+    source_navigation: Navigability,
+    target_navigation: Navigability,
+) -> Scene {
+    let mut s = Scene::default();
+    relation_line(
+        &mut s,
+        uuid::Uuid::nil(),
+        kind,
+        source_navigation,
+        target_navigation,
+        &[Point::new(0., 0.), Point::new(88., 0.)],
+    );
+    s
 }
 fn actor(s: &mut Scene, id: Id, r: Layout, name: &str) {
     let (body, lines) = crate::routing::actor_body(r, name);
@@ -263,46 +367,39 @@ pub fn build(d: &Diagram) -> Scene {
         );
     }
     let mut relation_labels = Vec::new();
+    let relation_paths: Vec<_> = d
+        .relations
+        .iter()
+        .map(|r| crate::routing::path(d, r))
+        .collect();
+    let segments: Vec<_> = relation_paths
+        .iter()
+        .flat_map(|p| p.windows(2).map(|w| (w[0], w[1])))
+        .collect();
+    let mut occupied: Vec<Layout> = relation_paths
+        .iter()
+        .flat_map(|p| {
+            [p.first(), p.last()]
+                .into_iter()
+                .flatten()
+                .map(|p| Layout::new(p.x - 30., p.y - 30., 60., 60.))
+        })
+        .collect();
     // Relations are rendered behind nodes; endpoints are attached to current geometry.
-    for r in &d.relations {
-        let pts = crate::routing::path(d, r);
+    for (r, pts) in d.relations.iter().zip(&relation_paths) {
         if pts.len() < 2 {
             continue;
         }
-        let dash = matches!(
+        relation_line(
+            &mut s,
+            r.id,
             r.kind,
-            RelationKind::Dependency
-                | RelationKind::Realization
-                | RelationKind::Include
-                | RelationKind::Extend
-                | RelationKind::Comment
+            r.source_navigation,
+            r.target_navigation,
+            pts,
         );
-        s.line(r.id, pts.clone(), dash);
         let end = *pts.last().unwrap();
         let start = pts[0];
-        match r.kind {
-            RelationKind::Generalization | RelationKind::Realization => {
-                arrow(&mut s, r.id, end, pts[pts.len() - 2], 1)
-            }
-            RelationKind::Aggregation | RelationKind::Composition => arrow(
-                &mut s,
-                r.id,
-                start,
-                pts[1],
-                if r.kind == RelationKind::Composition {
-                    4
-                } else {
-                    3
-                },
-            ),
-            RelationKind::Comment => {}
-            RelationKind::Association => {
-                if r.navigable {
-                    arrow(&mut s, r.id, end, pts[pts.len() - 2], 0)
-                }
-            }
-            _ => arrow(&mut s, r.id, end, pts[pts.len() - 2], 0),
-        }
         let label = match r.kind {
             RelationKind::Include => format!("«include» {}", r.name),
             RelationKind::Extend => format!("«extend» {}", r.name),
@@ -314,7 +411,9 @@ pub fn build(d: &Diagram) -> Scene {
                 lines.iter().map(|s| text_width(s, 13.)).fold(0., f32::max),
                 lines.len() as f32 * 22.,
             );
-            let origin = crate::routing::label_position(d, &pts, size);
+            let origin =
+                crate::routing::label_position_avoiding(d, pts, size, &occupied, &segments);
+            occupied.push(Layout::new(origin.x, origin.y, size.x, size.y));
             for (i, line) in lines.into_iter().enumerate() {
                 relation_labels.push((
                     r.id,
@@ -340,28 +439,18 @@ pub fn build(d: &Diagram) -> Scene {
             if text.trim().is_empty() {
                 continue;
             }
-            let dx = toward.x - endpoint.x;
-            let dy = toward.y - endpoint.y;
-            let pos = if dx.abs() >= dy.abs() {
-                Point::new(
-                    if dx >= 0. {
-                        endpoint.x + 9.
-                    } else {
-                        endpoint.x - text_width(&text, 12.) - 9.
-                    },
-                    endpoint.y + 8.,
-                )
-            } else {
-                Point::new(
-                    endpoint.x + 10.,
-                    if dy >= 0. {
-                        endpoint.y + 8.
-                    } else {
-                        endpoint.y - 26.
-                    },
-                )
-            };
-            relation_labels.push((r.id, pos, text, 12.));
+            let lines = crate::text_layout::wrap(text.trim(), 12., 160.);
+            let size = Point::new(
+                lines.iter().map(|s| text_width(s, 12.)).fold(0., f32::max),
+                lines.len() as f32 * 22.,
+            );
+            let pos = crate::routing::endpoint_label_position(
+                d, endpoint, toward, size, &occupied, &segments,
+            );
+            occupied.push(Layout::new(pos.x, pos.y, size.x, size.y));
+            for (i, line) in lines.into_iter().enumerate() {
+                relation_labels.push((r.id, Point::new(pos.x, pos.y + i as f32 * 22.), line, 12.));
+            }
         }
     }
     for n in d

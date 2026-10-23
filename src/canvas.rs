@@ -17,9 +17,12 @@ pub enum ContextAction {
 #[derive(Default)]
 pub struct CanvasState {
     pub selection: HashSet<Id>,
+    pub selected_area: Option<Layout>,
+    context_relation: Option<Id>,
     pub grid: bool,
     pub snap: bool,
     pub connection: Option<Id>,
+    pub connection_navigation: NavigationPreset,
     connection_drag: Option<Id>,
     connection_kind: Option<RelationKind>,
     drag: Option<Drag>,
@@ -38,6 +41,7 @@ struct Drag {
     additive: bool,
     initial_selection: HashSet<Id>,
     route: Option<(Id, usize, Vec<Point>)>,
+    endpoint: Option<(Id, bool)>,
 }
 pub fn screen_to_world(screen: egui::Pos2, origin: egui::Pos2, view: View) -> Point {
     Point::new(
@@ -60,6 +64,31 @@ pub fn fit(d: &mut Diagram, size: egui::Vec2) {
     }
 }
 
+/// Fit the selected geometry (including labels), or the last marquee region.
+pub fn fit_selection(
+    d: &mut Diagram,
+    size: egui::Vec2,
+    selection: &HashSet<Id>,
+    area: Option<Layout>,
+) -> bool {
+    let mut sc = scene::build(d);
+    sc.items.retain(|item| selection.contains(&item.owner));
+    if let Some(bounds) = sc.bounds().or(area) {
+        fit_bounds(d, size, bounds);
+        true
+    } else {
+        false
+    }
+}
+fn fit_bounds(d: &mut Diagram, size: egui::Vec2, r: Layout) {
+    d.view.zoom = ((size.x - 80.) / r.size.x.max(1.))
+        .min((size.y - 80.) / r.size.y.max(1.))
+        .clamp(0.1, 5.);
+    d.view.pan = Point::new(
+        (size.x - r.size.x * d.view.zoom) / 2. - r.pos.x * d.view.zoom,
+        (size.y - r.size.y * d.view.zoom) / 2. - r.pos.y * d.view.zoom,
+    );
+}
 // Connecting targets nodes, even when a relation label or an existing line is
 // painted above them. Actors use their whole selectable box, not just the strokes.
 fn connection_target(d: &Diagram, sc: &scene::Scene, p: Point, tolerance: f32) -> Option<Id> {
@@ -86,8 +115,16 @@ impl CanvasState {
             ..Default::default()
         }
     }
+    pub fn begin_connection(&mut self, preset: NavigationPreset) {
+        self.connection = None;
+        self.connection_drag = None;
+        self.notice = None;
+        self.connection_navigation = preset;
+    }
     pub fn clear(&mut self) {
         self.selection.clear();
+        self.selected_area = None;
+        self.context_relation = None;
         self.connection = None;
         self.connection_drag = None;
         self.notice = None;
@@ -104,7 +141,10 @@ impl CanvasState {
             self.notice = None;
             return false;
         };
-        let relation = Relation::new(source, target, kind);
+        let mut relation = Relation::new(source, target, kind);
+        if d.kind == DiagramKind::Class && kind == RelationKind::Association {
+            relation.apply_navigation(self.connection_navigation);
+        }
         let id = relation.id;
         match d.add_relation(relation) {
             Ok(()) => {
@@ -245,6 +285,23 @@ impl CanvasState {
                     .collect::<Vec<_>>()
             })
             .collect();
+        let endpoint_handles: Vec<_> = if d.kind == DiagramKind::Class {
+            d.relations
+                .iter()
+                .filter(|r| self.selection.contains(&r.id))
+                .flat_map(|r| {
+                    let pts = crate::routing::path(d, r);
+                    if pts.len() < 2 {
+                        vec![]
+                    } else {
+                        vec![(r.id, true, pts[0]), (r.id, false, *pts.last().unwrap())]
+                    }
+                })
+                .collect()
+        } else {
+            vec![]
+        };
+        let mut endpoint_guides = vec![];
         let primary_pressed = ui.input(|i| i.pointer.button_pressed(PointerButton::Primary));
         if response.hovered()
             && !space
@@ -300,13 +357,20 @@ impl CanvasState {
                     }
                 }
                 Tool::Select => {
+                    let endpoint = endpoint_handles
+                        .iter()
+                        .find(|(_, _, point)| {
+                            (point.x - w.x).hypot(point.y - w.y) < 9. / d.view.zoom
+                        })
+                        .map(|(id, source, _)| (*id, *source));
                     let route = route_handles
                         .iter()
                         .find(|(_, _, point, _)| {
                             (point.x - w.x).hypot(point.y - w.y) < 10. / d.view.zoom
                         })
+                        .filter(|_| endpoint.is_none())
                         .map(|(id, i, _, points)| (*id, *i, points.clone()));
-                    let resize = if self.selection.len() == 1 {
+                    let resize = if self.selection.len() == 1 && endpoint.is_none() {
                         self.selection.iter().next().and_then(|id| {
                             sc.boxes
                                 .get(id)
@@ -320,7 +384,8 @@ impl CanvasState {
                     } else {
                         None
                     };
-                    if resize.is_none() && route.is_none() {
+                    if resize.is_none() && route.is_none() && endpoint.is_none() {
+                        self.selected_area = None;
                         if let Some(id) = hit {
                             if additive {
                                 if !self.selection.insert(id) {
@@ -339,8 +404,12 @@ impl CanvasState {
                         start: w,
                         last: w,
                         original,
-                        marquee: hit.is_none() && resize.is_none() && route.is_none(),
+                        marquee: hit.is_none()
+                            && resize.is_none()
+                            && route.is_none()
+                            && endpoint.is_none(),
                         route,
+                        endpoint,
                         resize,
                         additive,
                         initial_selection: self.selection.clone(),
@@ -365,6 +434,7 @@ impl CanvasState {
                 } else {
                     HashSet::new()
                 };
+                self.selected_area = Some(r);
                 for (id, b) in &sc.selection_boxes() {
                     if r.contains(b.center()) {
                         self.selection.insert(*id);
@@ -380,6 +450,34 @@ impl CanvasState {
                     Stroke::new(1_f32, crate::theme::BLUE),
                     egui::StrokeKind::Inside,
                 );
+            } else if let Some((id, source)) = drag.endpoint {
+                if let Some(relation) = d.relations.iter().find(|r| r.id == id).cloned() {
+                    let node_id = if source {
+                        relation.source
+                    } else {
+                        relation.target
+                    };
+                    if let Some(node) = d.nodes.iter().find(|n| n.id == node_id) {
+                        let (snapped, guides) =
+                            crate::routing::snap_port(d, &relation, source, w, 7. / d.view.zoom);
+                        let port = if self.snap {
+                            snapped
+                        } else {
+                            crate::routing::port_at(node, w)
+                        };
+                        if self.guides {
+                            endpoint_guides = guides;
+                        }
+                        if let Some(r) = d.relations.iter_mut().find(|r| r.id == id) {
+                            if source {
+                                r.source_port = port;
+                            } else {
+                                r.target_port = port;
+                            }
+                            changed = true;
+                        }
+                    }
+                }
             } else if let Some((id, index, points)) = &drag.route {
                 if let Some(r) = d.relations.iter_mut().find(|r| r.id == *id) {
                     r.waypoints = points.clone();
@@ -500,6 +598,29 @@ impl CanvasState {
                 crate::theme::BLUE,
             );
         }
+        for (a, b) in &endpoint_guides {
+            painter.line_segment(
+                [
+                    world_to_screen(*a, origin, d.view),
+                    world_to_screen(*b, origin, d.view),
+                ],
+                Stroke::new(1_f32, crate::theme::BLUE),
+            );
+        }
+        for (id, source, _) in &endpoint_handles {
+            if let Some(relation) = d.relations.iter().find(|r| r.id == *id) {
+                let points = crate::routing::path(d, relation);
+                if let Some(p) = if *source {
+                    points.first()
+                } else {
+                    points.last()
+                } {
+                    let pos = world_to_screen(*p, origin, d.view);
+                    painter.circle_filled(pos, 6., Color32::WHITE);
+                    painter.circle_stroke(pos, 6., Stroke::new(2_f32, crate::theme::BLUE));
+                }
+            }
+        }
         if self.guides && response.dragged_by(PointerButton::Primary) {
             for n in d.nodes.iter().filter(|n| self.selection.contains(&n.id)) {
                 for other in d.nodes.iter().filter(|n| !self.selection.contains(&n.id)) {
@@ -577,7 +698,52 @@ impl CanvasState {
                 Color32::from_gray(105),
             );
         }
+        if response.secondary_clicked() {
+            self.context_relation = pointer
+                .and_then(|p| sc.hit(screen_to_world(p, origin, d.view), 7. / d.view.zoom))
+                .filter(|id| d.relations.iter().any(|r| r.id == *id));
+        }
         response.context_menu(|ui| {
+            if let Some(relation) = self
+                .context_relation
+                .and_then(|id| d.relations.iter().find(|r| r.id == id))
+                .cloned()
+            {
+                ui.strong("연결선 경로");
+                for mode in RouteMode::ALL {
+                    if ui
+                        .selectable_label(
+                            relation.route_mode == mode,
+                            format!("{} 경로", mode.label()),
+                        )
+                        .clicked()
+                    {
+                        let mut r = relation.clone();
+                        r.route_mode = mode;
+                        if let Err(reason) = d.update_relation(r) {
+                            self.notice = Some(reason);
+                        } else {
+                            changed = true;
+                        }
+                        ui.close();
+                    }
+                }
+                if ui.button("자동 경로 초기화").clicked() {
+                    let mut r = relation.clone();
+                    r.reset_route();
+                    if let Err(reason) = d.update_relation(r) {
+                        self.notice = Some(reason);
+                    } else {
+                        changed = true;
+                    }
+                    ui.close();
+                }
+                ui.separator();
+            }
+            if ui.button("선택 영역 맞춤").clicked() {
+                fit_selection(d, rect.size(), &self.selection, self.selected_area);
+                ui.close();
+            }
             for (label, action) in [
                 ("복사", ContextAction::Copy),
                 ("붙여넣기", ContextAction::Paste),

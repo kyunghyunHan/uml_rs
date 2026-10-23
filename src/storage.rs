@@ -17,22 +17,26 @@ pub fn load(path: &Path) -> Result<Project, String> {
     if bytes.len() > MAX_PROJECT_BYTES {
         return Err("프로젝트가 32 MiB 제한을 초과했습니다".into());
     }
-    let value: serde_json::Value = serde_json::from_slice(&bytes)
+    let mut value: serde_json::Value = serde_json::from_slice(&bytes)
         .map_err(|e| format!("JSON 프로젝트를 읽을 수 없습니다: {e}"))?;
     let version = value
         .get("format_version")
         .and_then(|v| v.as_u64())
         .ok_or("프로젝트 저장 형식 버전이 없거나 올바르지 않습니다")?;
-    if version != 1 && version != 2 {
+    if !matches!(version, 1..=3) {
         return Err(format!(
-            "지원하지 않는 프로젝트 버전: {version} (지원: 1, 2)"
+            "지원하지 않는 프로젝트 버전: {version} (지원: 1, 2, 3)"
         ));
+    }
+    if version <= 2 {
+        crate::migration::relation_fields_v3(&mut value);
     }
     let mut p: Project = serde_json::from_value(value)
         .map_err(|e| format!("프로젝트 구조를 읽을 수 없습니다: {e}"))?;
     if version == 1 {
         crate::migration::v1_to_v2(&mut p);
     }
+    p.format_version = 3;
     p.validate_structure()?;
     p.synchronize_links();
     Ok(p)

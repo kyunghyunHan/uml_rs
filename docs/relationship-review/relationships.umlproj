@@ -1,0 +1,1198 @@
+{
+  "format_version": 3,
+  "id": "e63dc8e9-efb5-467e-88eb-90726fa214d6",
+  "name": "클래스 관계 · 방향과 경로",
+  "diagrams": [
+    {
+      "id": "92cfb3a2-c132-454a-9b63-d8cd6a235112",
+      "name": "관계 표기 검토",
+      "kind": "Class",
+      "nodes": [
+        {
+          "id": "ee9e2827-d624-4650-8462-c344f00c87e3",
+          "kind": "Class",
+          "name": "Source 1",
+          "attributes": [
+            {
+              "id": "8975f254-2445-4732-9c23-f4804c82dfb6",
+              "visibility": "+",
+              "name": "count",
+              "type_name": "int",
+              "value": "",
+              "parameters": "",
+              "is_static": true,
+              "is_abstract": false
+            }
+          ],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 40.0,
+              "y": 60.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "3ee25b72-5207-4573-9bb8-caf55bab8625",
+          "kind": "Class",
+          "name": "Target 1",
+          "attributes": [],
+          "methods": [
+            {
+              "id": "e68bae52-5708-4847-bc72-cfd9902731d3",
+              "visibility": "+",
+              "name": "execute",
+              "type_name": "void",
+              "value": "",
+              "parameters": "",
+              "is_static": false,
+              "is_abstract": true
+            }
+          ],
+          "layout": {
+            "pos": {
+              "x": 460.0,
+              "y": 60.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "9102d18a-116b-4924-89bb-f328b77c21a1",
+          "kind": "Class",
+          "name": "Source 2",
+          "attributes": [
+            {
+              "id": "b22fa3e7-cb7b-42c0-afd9-e08b01178fc8",
+              "visibility": "+",
+              "name": "count",
+              "type_name": "int",
+              "value": "",
+              "parameters": "",
+              "is_static": true,
+              "is_abstract": false
+            }
+          ],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 860.0,
+              "y": 60.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "26a2cdd4-5475-4edb-9523-b03b5b66d9ef",
+          "kind": "Class",
+          "name": "Target 2",
+          "attributes": [],
+          "methods": [
+            {
+              "id": "be650127-9206-4304-b970-eaa7ac8da995",
+              "visibility": "+",
+              "name": "execute",
+              "type_name": "void",
+              "value": "",
+              "parameters": "",
+              "is_static": false,
+              "is_abstract": true
+            }
+          ],
+          "layout": {
+            "pos": {
+              "x": 1280.0,
+              "y": 60.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "1e8857e7-4ff9-47b9-9493-fb21cb4ca95a",
+          "kind": "Class",
+          "name": "Source 3",
+          "attributes": [
+            {
+              "id": "32861a05-528d-409a-a7a1-0aaab61b517f",
+              "visibility": "+",
+              "name": "count",
+              "type_name": "int",
+              "value": "",
+              "parameters": "",
+              "is_static": true,
+              "is_abstract": false
+            }
+          ],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 40.0,
+              "y": 290.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "9d7330dd-6ca8-4d38-94c5-81a3bd151448",
+          "kind": "Class",
+          "name": "Target 3",
+          "attributes": [],
+          "methods": [
+            {
+              "id": "e3272e64-2be2-4f7d-8dfc-f7405811b161",
+              "visibility": "+",
+              "name": "execute",
+              "type_name": "void",
+              "value": "",
+              "parameters": "",
+              "is_static": false,
+              "is_abstract": true
+            }
+          ],
+          "layout": {
+            "pos": {
+              "x": 460.0,
+              "y": 290.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "b015c877-9d72-4e4b-88e0-213fa1b09ad0",
+          "kind": "Class",
+          "name": "Source 4",
+          "attributes": [
+            {
+              "id": "b08b438a-3731-4ffc-b3f7-53b2d27fab66",
+              "visibility": "+",
+              "name": "count",
+              "type_name": "int",
+              "value": "",
+              "parameters": "",
+              "is_static": true,
+              "is_abstract": false
+            }
+          ],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 860.0,
+              "y": 290.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "dd064d7d-09ea-4425-8d5d-9547dedb95cc",
+          "kind": "Class",
+          "name": "Target 4",
+          "attributes": [],
+          "methods": [
+            {
+              "id": "45fba495-865c-4505-9d07-44ea7818c7bd",
+              "visibility": "+",
+              "name": "execute",
+              "type_name": "void",
+              "value": "",
+              "parameters": "",
+              "is_static": false,
+              "is_abstract": true
+            }
+          ],
+          "layout": {
+            "pos": {
+              "x": 1280.0,
+              "y": 290.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "68cd3245-1eb3-4355-bffd-47ca3d361e83",
+          "kind": "Class",
+          "name": "Source 5",
+          "attributes": [
+            {
+              "id": "b649a7d8-9c6d-4b9d-99bc-71ccce7e0170",
+              "visibility": "+",
+              "name": "count",
+              "type_name": "int",
+              "value": "",
+              "parameters": "",
+              "is_static": true,
+              "is_abstract": false
+            }
+          ],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 40.0,
+              "y": 520.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "09df7a17-4179-4763-8f48-53782d233f27",
+          "kind": "Class",
+          "name": "Target 5",
+          "attributes": [],
+          "methods": [
+            {
+              "id": "ee65fc94-4e61-48e7-89b3-75f238479a17",
+              "visibility": "+",
+              "name": "execute",
+              "type_name": "void",
+              "value": "",
+              "parameters": "",
+              "is_static": false,
+              "is_abstract": true
+            }
+          ],
+          "layout": {
+            "pos": {
+              "x": 460.0,
+              "y": 520.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "7e6a280f-aeca-4971-b68b-164a093d2789",
+          "kind": "Class",
+          "name": "Source 6",
+          "attributes": [
+            {
+              "id": "4ce818ed-46c7-4014-930b-6046b18b8499",
+              "visibility": "+",
+              "name": "count",
+              "type_name": "int",
+              "value": "",
+              "parameters": "",
+              "is_static": true,
+              "is_abstract": false
+            }
+          ],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 860.0,
+              "y": 520.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "7f823c93-9d63-4616-8432-a9186a368372",
+          "kind": "Class",
+          "name": "Target 6",
+          "attributes": [],
+          "methods": [
+            {
+              "id": "e9198f94-4332-49bf-a831-98a7dc5fb17f",
+              "visibility": "+",
+              "name": "execute",
+              "type_name": "void",
+              "value": "",
+              "parameters": "",
+              "is_static": false,
+              "is_abstract": true
+            }
+          ],
+          "layout": {
+            "pos": {
+              "x": 1280.0,
+              "y": 520.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "4267b241-e02d-4bfa-91c8-a967ccf6140d",
+          "kind": "Class",
+          "name": "Source 7",
+          "attributes": [
+            {
+              "id": "44f4da1a-d7b7-4d54-81d9-6cf8d2004b8d",
+              "visibility": "+",
+              "name": "count",
+              "type_name": "int",
+              "value": "",
+              "parameters": "",
+              "is_static": true,
+              "is_abstract": false
+            }
+          ],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 40.0,
+              "y": 750.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "eddfd939-d9f5-49af-8dd4-f347fca4247c",
+          "kind": "Class",
+          "name": "Target 7",
+          "attributes": [],
+          "methods": [
+            {
+              "id": "c626aa00-a8ac-4669-a467-de87af0f3f9a",
+              "visibility": "+",
+              "name": "execute",
+              "type_name": "void",
+              "value": "",
+              "parameters": "",
+              "is_static": false,
+              "is_abstract": true
+            }
+          ],
+          "layout": {
+            "pos": {
+              "x": 460.0,
+              "y": 750.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "15d8147f-a04b-48b2-8478-c46c1ae12ba8",
+          "kind": "Class",
+          "name": "Source 8",
+          "attributes": [
+            {
+              "id": "44796bb6-62d9-4912-a493-78cae2e81dff",
+              "visibility": "+",
+              "name": "count",
+              "type_name": "int",
+              "value": "",
+              "parameters": "",
+              "is_static": true,
+              "is_abstract": false
+            }
+          ],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 860.0,
+              "y": 750.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "f962d7df-0304-45d8-bc7f-39da0bde5e6f",
+          "kind": "AbstractClass",
+          "name": "Target 8",
+          "attributes": [],
+          "methods": [
+            {
+              "id": "33797f70-889f-4f58-b04d-42b745ca8ce0",
+              "visibility": "+",
+              "name": "execute",
+              "type_name": "void",
+              "value": "",
+              "parameters": "",
+              "is_static": false,
+              "is_abstract": true
+            }
+          ],
+          "layout": {
+            "pos": {
+              "x": 1280.0,
+              "y": 750.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "fbfb8f2a-344f-4ae8-9809-f45fe5e65964",
+          "kind": "Class",
+          "name": "Source 9",
+          "attributes": [
+            {
+              "id": "b37fc874-eae6-4496-a089-d611a4addad8",
+              "visibility": "+",
+              "name": "count",
+              "type_name": "int",
+              "value": "",
+              "parameters": "",
+              "is_static": true,
+              "is_abstract": false
+            }
+          ],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 40.0,
+              "y": 980.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "0185c335-0172-45a2-b6ae-e8d9029ea908",
+          "kind": "Interface",
+          "name": "Target 9",
+          "attributes": [],
+          "methods": [
+            {
+              "id": "6a7b8931-df0c-4ca6-a044-173c2d117a54",
+              "visibility": "+",
+              "name": "execute",
+              "type_name": "void",
+              "value": "",
+              "parameters": "",
+              "is_static": false,
+              "is_abstract": true
+            }
+          ],
+          "layout": {
+            "pos": {
+              "x": 460.0,
+              "y": 980.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "6f5991d5-d6fc-4c6a-a9dc-68772835010c",
+          "kind": "Class",
+          "name": "Obstacle",
+          "attributes": [],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 1110.0,
+              "y": 975.0
+            },
+            "size": {
+              "x": 100.0,
+              "y": 110.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "ef85c3f5-2f50-4e49-8b8d-ec4119d20a53",
+          "kind": "Class",
+          "name": "Source 10",
+          "attributes": [
+            {
+              "id": "476505c2-5c96-4fcb-a543-29b26b8864b1",
+              "visibility": "+",
+              "name": "count",
+              "type_name": "int",
+              "value": "",
+              "parameters": "",
+              "is_static": true,
+              "is_abstract": false
+            }
+          ],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 860.0,
+              "y": 980.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "0c0a8ff2-a8c3-41d8-abcb-9b148c6566c0",
+          "kind": "Class",
+          "name": "Target 10",
+          "attributes": [],
+          "methods": [
+            {
+              "id": "b2310bae-3d9f-4f83-a4c8-95872013e73d",
+              "visibility": "+",
+              "name": "execute",
+              "type_name": "void",
+              "value": "",
+              "parameters": "",
+              "is_static": false,
+              "is_abstract": true
+            }
+          ],
+          "layout": {
+            "pos": {
+              "x": 1280.0,
+              "y": 980.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "8f123666-9514-444c-bd8f-a46b76da9df3",
+          "kind": "Class",
+          "name": "Self association",
+          "attributes": [],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 40.0,
+              "y": 1250.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        }
+      ],
+      "relations": [
+        {
+          "id": "88543e08-1fea-456e-99de-d45cebc78ba8",
+          "source": "ee9e2827-d624-4650-8462-c344f00c87e3",
+          "target": "3ee25b72-5207-4573-9bb8-caf55bab8625",
+          "kind": "Association",
+          "name": "일반 연관 · 방향 미지정",
+          "source_role": "owner",
+          "target_role": "items",
+          "source_multiplicity": "1",
+          "target_multiplicity": "0..*",
+          "source_navigation": "Unspecified",
+          "target_navigation": "Unspecified",
+          "route_mode": "Auto",
+          "source_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "target_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "bend": null,
+          "waypoints": []
+        },
+        {
+          "id": "7e2f416c-e038-4999-9785-2cbe094e6c71",
+          "source": "9102d18a-116b-4924-89bb-f328b77c21a1",
+          "target": "26a2cdd4-5475-4edb-9523-b03b5b66d9ef",
+          "kind": "Association",
+          "name": "시작→도착",
+          "source_role": "owner",
+          "target_role": "items",
+          "source_multiplicity": "1",
+          "target_multiplicity": "0..*",
+          "source_navigation": "Unspecified",
+          "target_navigation": "Navigable",
+          "route_mode": "Auto",
+          "source_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "target_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "bend": null,
+          "waypoints": []
+        },
+        {
+          "id": "31240da4-1a66-4e48-933c-aa7789335af6",
+          "source": "1e8857e7-4ff9-47b9-9493-fb21cb4ca95a",
+          "target": "9d7330dd-6ca8-4d38-94c5-81a3bd151448",
+          "kind": "Association",
+          "name": "도착→시작",
+          "source_role": "owner",
+          "target_role": "items",
+          "source_multiplicity": "1",
+          "target_multiplicity": "0..*",
+          "source_navigation": "Navigable",
+          "target_navigation": "Unspecified",
+          "route_mode": "Auto",
+          "source_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "target_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "bend": null,
+          "waypoints": []
+        },
+        {
+          "id": "e732a7cb-6ff3-45f2-b966-097c1c101903",
+          "source": "b015c877-9d72-4e4b-88e0-213fa1b09ad0",
+          "target": "dd064d7d-09ea-4425-8d5d-9547dedb95cc",
+          "kind": "Association",
+          "name": "양방향",
+          "source_role": "owner",
+          "target_role": "items",
+          "source_multiplicity": "1",
+          "target_multiplicity": "0..*",
+          "source_navigation": "Navigable",
+          "target_navigation": "Navigable",
+          "route_mode": "Auto",
+          "source_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "target_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "bend": null,
+          "waypoints": []
+        },
+        {
+          "id": "f49cc5aa-e038-4837-be38-1decf9f3fe63",
+          "source": "68cd3245-1eb3-4355-bffd-47ca3d361e83",
+          "target": "09df7a17-4179-4763-8f48-53782d233f27",
+          "kind": "Association",
+          "name": "시작 탐색 불가 · 도착 탐색 가능",
+          "source_role": "owner",
+          "target_role": "items",
+          "source_multiplicity": "1",
+          "target_multiplicity": "0..*",
+          "source_navigation": "NonNavigable",
+          "target_navigation": "Navigable",
+          "route_mode": "Auto",
+          "source_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "target_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "bend": null,
+          "waypoints": []
+        },
+        {
+          "id": "e943ab94-52ce-4244-b91d-60b2515b74e8",
+          "source": "7e6a280f-aeca-4971-b68b-164a093d2789",
+          "target": "7f823c93-9d63-4616-8432-a9186a368372",
+          "kind": "Aggregation",
+          "name": "집합 · 다이아몬드와 탐색 독립",
+          "source_role": "owner",
+          "target_role": "items",
+          "source_multiplicity": "1",
+          "target_multiplicity": "0..*",
+          "source_navigation": "Navigable",
+          "target_navigation": "Navigable",
+          "route_mode": "Auto",
+          "source_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "target_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "bend": null,
+          "waypoints": []
+        },
+        {
+          "id": "0e61e5f9-5180-4428-a555-d35b3e45f83d",
+          "source": "4267b241-e02d-4bfa-91c8-a967ccf6140d",
+          "target": "eddfd939-d9f5-49af-8dd4-f347fca4247c",
+          "kind": "Composition",
+          "name": "합성 · 전체 1 / 부분 0..*",
+          "source_role": "owner",
+          "target_role": "items",
+          "source_multiplicity": "1",
+          "target_multiplicity": "0..*",
+          "source_navigation": "Unspecified",
+          "target_navigation": "Navigable",
+          "route_mode": "Auto",
+          "source_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "target_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "bend": null,
+          "waypoints": []
+        },
+        {
+          "id": "6ed799e5-f1b3-4962-b2f2-822465b18bb5",
+          "source": "15d8147f-a04b-48b2-8478-c46c1ae12ba8",
+          "target": "f962d7df-0304-45d8-bc7f-39da0bde5e6f",
+          "kind": "Generalization",
+          "name": "일반화 · 하위→상위",
+          "source_role": "",
+          "target_role": "",
+          "source_multiplicity": "",
+          "target_multiplicity": "",
+          "source_navigation": "Unspecified",
+          "target_navigation": "Unspecified",
+          "route_mode": "Auto",
+          "source_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "target_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "bend": null,
+          "waypoints": []
+        },
+        {
+          "id": "abad8e71-88aa-41f2-b95a-eef83beece5f",
+          "source": "fbfb8f2a-344f-4ae8-9809-f45fe5e65964",
+          "target": "0185c335-0172-45a2-b6ae-e8d9029ea908",
+          "kind": "Realization",
+          "name": "구현 · 클래스→인터페이스",
+          "source_role": "",
+          "target_role": "",
+          "source_multiplicity": "",
+          "target_multiplicity": "",
+          "source_navigation": "Unspecified",
+          "target_navigation": "Unspecified",
+          "route_mode": "Auto",
+          "source_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "target_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "bend": null,
+          "waypoints": []
+        },
+        {
+          "id": "c70662d8-480b-42f5-9a17-88e184328cc0",
+          "source": "ef85c3f5-2f50-4e49-8b8d-ec4119d20a53",
+          "target": "0c0a8ff2-a8c3-41d8-abcb-9b148c6566c0",
+          "kind": "Dependency",
+          "name": "의존 · 직교 장애물 회피",
+          "source_role": "",
+          "target_role": "",
+          "source_multiplicity": "",
+          "target_multiplicity": "",
+          "source_navigation": "Unspecified",
+          "target_navigation": "Unspecified",
+          "route_mode": "Orthogonal",
+          "source_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "target_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "bend": null,
+          "waypoints": []
+        },
+        {
+          "id": "3e30f1f3-0ad8-421e-9a7b-297a058555c2",
+          "source": "8f123666-9514-444c-bd8f-a46b76da9df3",
+          "target": "8f123666-9514-444c-bd8f-a46b76da9df3",
+          "kind": "Association",
+          "name": "자기 연관 · 직선 모드에서도 루프",
+          "source_role": "",
+          "target_role": "",
+          "source_multiplicity": "",
+          "target_multiplicity": "",
+          "source_navigation": "Navigable",
+          "target_navigation": "Navigable",
+          "route_mode": "Straight",
+          "source_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "target_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "bend": null,
+          "waypoints": []
+        },
+        {
+          "id": "447905ce-7466-4c73-aa12-8a4f1b00c983",
+          "source": "ee9e2827-d624-4650-8462-c344f00c87e3",
+          "target": "3ee25b72-5207-4573-9bb8-caf55bab8625",
+          "kind": "Association",
+          "name": "겹친 관계의 자동 분리",
+          "source_role": "",
+          "target_role": "",
+          "source_multiplicity": "",
+          "target_multiplicity": "",
+          "source_navigation": "Navigable",
+          "target_navigation": "Unspecified",
+          "route_mode": "Auto",
+          "source_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "target_port": {
+            "side": "Auto",
+            "offset": 0.5
+          },
+          "bend": null,
+          "waypoints": []
+        }
+      ],
+      "sequence": {
+        "participants": [],
+        "messages": [],
+        "activations": [],
+        "fragments": [],
+        "auto_activate": false
+      },
+      "view": {
+        "pan": {
+          "x": 40.0,
+          "y": 40.0
+        },
+        "zoom": 1.0
+      }
+    }
+  ]
+}

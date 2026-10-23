@@ -13,6 +13,13 @@ struct Texture {
 fn cross(a: Pos2, b: Pos2, c: Pos2) -> f32 {
     (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
 }
+fn text_center(shape: &egui::Shape, label: &str) -> Option<egui::Pos2> {
+    match shape {
+        egui::Shape::Text(t) if t.galley.job.text == label => Some(t.pos + t.galley.size() / 2.),
+        egui::Shape::Vec(shapes) => shapes.iter().find_map(|s| text_center(s, label)),
+        _ => None,
+    }
+}
 fn main() {
     let args: Vec<_> = std::env::args().collect();
     let path = args.get(1).expect("output PNG path");
@@ -21,21 +28,31 @@ fn main() {
     let (width, height) = if small { (820, 620) } else { (1440, 900) };
     let ctx = egui::Context::default();
     let mut app = uml_studio::app::UmlApp::new(&eframe::CreationContext::_new_kittest(ctx.clone()));
-    let mut p = uml_studio::demo::review_project();
+    let mut p = if args.iter().any(|a| a == "--relations") {
+        uml_studio::demo::relationship_review_project()
+    } else {
+        uml_studio::demo::review_project()
+    };
     let len = p.diagrams.len();
     p.diagrams.rotate_left(index % len);
-    let selected = match index % 3 {
-        0 => p.diagrams[0]
-            .nodes
-            .iter()
-            .find(|n| n.kind == uml_studio::model::NodeKind::UseCase)
-            .map(|n| n.id),
-        1 => p.diagrams[0]
-            .nodes
-            .iter()
-            .find(|n| n.is_classifier())
-            .map(|n| n.id),
-        _ => p.diagrams[0].sequence.fragments.first().map(|f| f.id),
+    let selected = if args.iter().any(|a| a == "--relations") {
+        p.diagrams[0].relations.get(3).map(|r| r.id)
+    } else if args.iter().any(|a| a == "--relation-inspector") {
+        p.diagrams[0].relations.first().map(|r| r.id)
+    } else {
+        match index % 3 {
+            0 => p.diagrams[0]
+                .nodes
+                .iter()
+                .find(|n| n.kind == uml_studio::model::NodeKind::UseCase)
+                .map(|n| n.id),
+            1 => p.diagrams[0]
+                .nodes
+                .iter()
+                .find(|n| n.is_classifier())
+                .map(|n| n.id),
+            _ => p.diagrams[0].sequence.fragments.first().map(|f| f.id),
+        }
     };
     if args.iter().any(|a| a == "--long-names") {
         for d in &mut p.diagrams {
@@ -62,12 +79,53 @@ fn main() {
     let mut frame = eframe::Frame::_new_kittest();
     let mut textures = HashMap::new();
     let mut shapes = vec![];
-    for tick in 0..12 {
+    let mut menu_pos = None;
+    let ticks = if args
+        .iter()
+        .any(|a| a == "--route-settings" || a == "--relation-menu")
+    {
+        30
+    } else {
+        12
+    };
+    for tick in 0..ticks {
         if tick == 2
             && args.iter().any(|a| a == "--inspector")
             && let Some(id) = selected
         {
             app.inspect_element(id);
+        }
+        let mut events = vec![];
+        if args.iter().any(|a| a == "--relation-menu") {
+            if tick == 6 {
+                menu_pos = shapes
+                    .iter()
+                    .find_map(|s: &egui::epaint::ClippedShape| text_center(&s.shape, "관계 연결"));
+            }
+            if let Some(pos) = menu_pos {
+                if tick == 7 {
+                    events.push(egui::Event::PointerMoved(pos));
+                }
+                if tick == 8 || tick == 9 {
+                    events.push(egui::Event::PointerButton {
+                        pos,
+                        button: egui::PointerButton::Primary,
+                        pressed: tick == 8,
+                        modifiers: egui::Modifiers::NONE,
+                    });
+                }
+            }
+        }
+        if tick == 7 && args.iter().any(|a| a == "--route-settings") {
+            events.push(egui::Event::PointerMoved(egui::pos2(
+                width as f32 - 80.,
+                height as f32 - 160.,
+            )));
+            events.push(egui::Event::MouseWheel {
+                unit: egui::MouseWheelUnit::Point,
+                delta: egui::vec2(0., -620.),
+                modifiers: egui::Modifiers::NONE,
+            });
         }
         let output = ctx.run(
             egui::RawInput {
@@ -75,6 +133,7 @@ fn main() {
                     Pos2::ZERO,
                     egui::vec2(width as f32, height as f32),
                 )),
+                events,
                 time: Some(tick as f64 / 30.),
                 ..Default::default()
             },

@@ -142,7 +142,7 @@ fn invalid_legacy_relationships_load_losslessly_for_repair() {
     let path = dir.path().join("old.umlproj");
     std::fs::write(&path, serde_json::to_vec(&p).unwrap()).unwrap();
     let mut loaded = storage::load(&path).unwrap();
-    assert_eq!(loaded.format_version, 2);
+    assert_eq!(loaded.format_version, 3);
     assert_eq!(loaded.diagrams[0].relations[0].id, rid);
     assert!(!loaded.diagnostics().is_empty());
     assert!(storage::save(&path, &loaded).is_err());
@@ -158,7 +158,7 @@ fn v1_migration_preserves_ids_geometry_and_explicit_containment() {
         serde_json::from_str(include_str!("fixtures/v1.umlproj")).unwrap();
     let migrated = storage::load(std::path::Path::new("tests/fixtures/v1.umlproj")).unwrap();
     assert_eq!(migrated.id.to_string(), original["id"].as_str().unwrap());
-    assert_eq!(migrated.format_version, 2);
+    assert_eq!(migrated.format_version, 3);
     for (d, old) in migrated
         .diagrams
         .iter()
@@ -665,7 +665,12 @@ fn canvas_route_handle_drag_is_an_actual_mouse_edit() {
     };
     run(vec![], &mut d);
     let path = routing::path(&d, &d.relations[0]);
-    let handle = uml_studio::canvas::world_to_screen(path[1], egui::Pos2::ZERO, d.view);
+    let point = if path.len() == 2 {
+        Point::new((path[0].x + path[1].x) / 2., (path[0].y + path[1].y) / 2.)
+    } else {
+        path[1]
+    };
+    let handle = uml_studio::canvas::world_to_screen(point, egui::Pos2::ZERO, d.view);
     let pressed = |pos, pressed| Event::PointerButton {
         pos,
         button: PointerButton::Primary,
@@ -682,7 +687,7 @@ fn canvas_route_handle_drag_is_an_actual_mouse_edit() {
     assert!(!d.relations[0].waypoints.is_empty());
     assert_eq!(
         d.relations[0].waypoints[0],
-        Point::new(path[1].x + 60., path[1].y + 40.)
+        Point::new(point.x + 60., point.y + 40.)
     );
 }
 

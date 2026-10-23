@@ -19,3 +19,31 @@ pub fn v1_to_v2(p: &mut Project) {
         }
     }
 }
+
+/// Old false means unspecified, never an explicit non-navigable end.
+pub fn relation_fields_v3(project: &mut serde_json::Value) {
+    if let Some(diagrams) = project.get_mut("diagrams").and_then(|v| v.as_array_mut()) {
+        for d in diagrams {
+            if let Some(relations) = d.get_mut("relations").and_then(|v| v.as_array_mut()) {
+                for r in relations {
+                    if let Some(fields) = r.as_object_mut() {
+                        let old = fields
+                            .remove("navigable")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false);
+                        fields
+                            .entry("source_navigation")
+                            .or_insert(serde_json::json!("Unspecified"));
+                        fields
+                            .entry("target_navigation")
+                            .or_insert(serde_json::json!(if old {
+                                "Navigable"
+                            } else {
+                                "Unspecified"
+                            }));
+                    }
+                }
+            }
+        }
+    }
+}

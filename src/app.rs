@@ -911,34 +911,19 @@ impl UmlApp {
                                     .selected(matches!(self.tool, Tool::Connect(_))),
                             )
                             .ui(ui, |ui| {
-                                for k in RelationKind::ALL {
-                                    if (d.kind == DiagramKind::Class
-                                        && matches!(
-                                            k,
-                                            RelationKind::Include | RelationKind::Extend
-                                        ))
-                                        || (d.kind == DiagramKind::UseCase
-                                            && !matches!(
-                                                k,
-                                                RelationKind::Association
-                                                    | RelationKind::Include
-                                                    | RelationKind::Extend
-                                                    | RelationKind::Generalization
-                                                    | RelationKind::Comment
-                                            ))
+                                for choice in crate::palette::relation_choices(d.kind) {
+                                    if crate::palette::relation_option(
+                                        ui,
+                                        &choice.label,
+                                        choice.kind,
+                                        choice.preset,
+                                        self.tool == Tool::Connect(choice.kind)
+                                            && self.canvas.connection_navigation == choice.preset,
+                                    )
+                                    .clicked()
                                     {
-                                        continue;
-                                    }
-                                    let label = crate::palette::relation_label(d.kind, k);
-                                    if ui
-                                        .add(
-                                            egui::Button::new(label)
-                                                .selected(self.tool == Tool::Connect(k)),
-                                        )
-                                        .clicked()
-                                    {
-                                        self.tool = Tool::Connect(k);
-                                        self.canvas.connection = None;
+                                        self.tool = Tool::Connect(choice.kind);
+                                        self.canvas.begin_connection(choice.preset);
                                         ui.close();
                                     }
                                 }
@@ -949,6 +934,17 @@ impl UmlApp {
                             });
                         }
                         ui.menu_button("더보기", |ui| {
+                            if ui.button("선택 영역 맞춤").clicked() {
+                                canvas::fit_selection(
+                                    d,
+                                    self.canvas_size,
+                                    &self.canvas.selection,
+                                    self.canvas.selected_area,
+                                );
+                                ui.close();
+                            }
+                            ui.separator();
+                            ui.strong("노드 정렬 · 경로와 별도");
                             if self.tool != Tool::Select
                                 && ui.button("연결 / 추가 취소 · Esc").clicked()
                             {
@@ -1019,8 +1015,8 @@ impl UmlApp {
                                 "오른쪽 정렬",
                                 "위쪽 정렬",
                                 "아래쪽 정렬",
-                                "가로 가운데",
-                                "세로 가운데",
+                                "세로 중앙선에 맞춤",
+                                "가로 중앙선에 맞춤",
                             ]
                             .iter()
                             .enumerate()
@@ -1453,7 +1449,7 @@ pub fn example_project() -> Project {
     });
     bubble.fit();
     let mut r = Relation::new(service.id, policy.id, RelationKind::Association);
-    r.navigable = true;
+    r.target_navigation = Navigability::Navigable;
     r.target_multiplicity = "1".into();
     r.target_role = "policy".into();
     d.relations = vec![
@@ -2086,6 +2082,193 @@ mod tests {
                 "속성에서 수정한 이름",
                 "size={size:?}, focus={:?}",
                 ctx.memory(|m| m.focused())
+            );
+        }
+    }
+    #[test]
+    fn class_navigation_menu_creation_property_presets_and_swap_are_undoable() {
+        for preset in NavigationPreset::ALL {
+            let size = egui::vec2(1440., 900.);
+            let ctx = egui::Context::default();
+            let mut app = app(&ctx);
+            let mut p = Project::new("class", DiagramKind::Class, "navigation");
+            p.diagrams[0].nodes = vec![
+                Node::new(NodeKind::Class, Point::new(80., 100.)),
+                Node::new(NodeKind::Class, Point::new(560., 260.)),
+            ];
+            app.replace(p, None, true);
+            app.show_project = false;
+            app.show_properties = false;
+            let output = ui_frame(&ctx, &mut app, size, vec![]);
+            let output = ui_click(
+                &ctx,
+                &mut app,
+                size,
+                label_rect(&output, "관계 연결").center(),
+            );
+            let label = crate::palette::relation_choices(DiagramKind::Class)
+                .into_iter()
+                .find(|c| c.kind == RelationKind::Association && c.preset == preset)
+                .unwrap()
+                .label;
+            ui_click(&ctx, &mut app, size, label_rect(&output, &label).center());
+            assert!(app.tool == Tool::Connect(RelationKind::Association));
+            for i in [0, 1] {
+                let d = &app.project.as_ref().unwrap().diagrams[0];
+                let bottom =
+                    egui::containers::panel::PanelState::load(&ctx, egui::Id::new("status"))
+                        .unwrap()
+                        .rect
+                        .top();
+                let pos = canvas::world_to_screen(
+                    d.nodes[i].layout.center(),
+                    egui::pos2(0., bottom - app.canvas_size.y),
+                    d.view,
+                );
+                ui_click(&ctx, &mut app, size, pos);
+            }
+            let relation = app.project.as_ref().unwrap().diagrams[0].relations[0].clone();
+            assert_eq!(
+                (relation.source_navigation, relation.target_navigation),
+                preset.ends()
+            );
+            let output = ui_frame(&ctx, &mut app, size, vec![]);
+            ui_click(&ctx, &mut app, size, label_rect(&output, "선택").center());
+            app.show_properties = true;
+            let output = ui_frame(&ctx, &mut app, size, vec![]);
+            let output = ui_click(
+                &ctx,
+                &mut app,
+                size,
+                label_rect(&output, "방향 프리셋").center(),
+            );
+            let edited_preset = if preset == NavigationPreset::Both {
+                NavigationPreset::Forward
+            } else {
+                NavigationPreset::Both
+            };
+            ui_click(
+                &ctx,
+                &mut app,
+                size,
+                label_rect(&output, edited_preset.label()).center(),
+            );
+            let before_preset = app.project.as_ref().unwrap().diagrams[0].relations[0].clone();
+            assert_eq!(
+                (
+                    before_preset.source_navigation,
+                    before_preset.target_navigation
+                ),
+                edited_preset.ends()
+            );
+            let output = ui_frame(&ctx, &mut app, size, vec![]);
+            let output = ui_click(
+                &ctx,
+                &mut app,
+                size,
+                label_rect(&output, before_preset.source_navigation.label()).center(),
+            );
+            ui_click(
+                &ctx,
+                &mut app,
+                size,
+                label_rect(&output, Navigability::NonNavigable.label()).center(),
+            );
+            let before = app.project.as_ref().unwrap().diagrams[0].relations[0].clone();
+            assert_eq!(before.source_navigation, Navigability::NonNavigable);
+            let output = ui_frame(&ctx, &mut app, size, vec![]);
+            ui_click(
+                &ctx,
+                &mut app,
+                size,
+                label_rect(&output, "시작↔도착 교환").center(),
+            );
+            let swapped = app.project.as_ref().unwrap().diagrams[0].relations[0].clone();
+            assert_eq!(
+                (swapped.source, swapped.target),
+                (before.target, before.source)
+            );
+            assert_eq!(
+                (swapped.source_navigation, swapped.target_navigation),
+                (before.target_navigation, before.source_navigation)
+            );
+            let _ = ctx.run(key(Key::Z, true), |ctx| {
+                app.update(ctx, &mut eframe::Frame::_new_kittest())
+            });
+            assert_eq!(
+                app.project.as_ref().unwrap().diagrams[0].relations[0],
+                before
+            );
+            let _ = ctx.run(key(Key::Y, true), |ctx| {
+                app.update(ctx, &mut eframe::Frame::_new_kittest())
+            });
+            assert_eq!(
+                app.project.as_ref().unwrap().diagrams[0].relations[0],
+                swapped
+            );
+        }
+    }
+    #[test]
+    fn route_mode_and_port_properties_update_the_canvas_at_both_sizes() {
+        for size in [egui::vec2(1440., 900.), egui::vec2(820., 620.)] {
+            let ctx = egui::Context::default();
+            let mut app = app(&ctx);
+            let mut p = Project::new("routes", DiagramKind::Class, "test");
+            p.diagrams[0].nodes = vec![
+                Node::new(NodeKind::Class, Point::new(60., 100.)),
+                Node::new(NodeKind::Class, Point::new(500., 300.)),
+            ];
+            let r = Relation::new(
+                p.diagrams[0].nodes[0].id,
+                p.diagrams[0].nodes[1].id,
+                RelationKind::Association,
+            );
+            let id = r.id;
+            p.diagrams[0].add_relation(r).unwrap();
+            app.replace(p, None, true);
+            app.show_project = false;
+            ui_frame(&ctx, &mut app, size, vec![]);
+            app.inspect_element(id);
+            ui_frame(&ctx, &mut app, size, vec![]);
+            let output = ui_frame(
+                &ctx,
+                &mut app,
+                size,
+                vec![
+                    egui::Event::PointerMoved(egui::pos2(size.x - 100., size.y - 180.)),
+                    egui::Event::MouseWheel {
+                        unit: egui::MouseWheelUnit::Point,
+                        delta: egui::vec2(0., -620.),
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ],
+            );
+            let _ = output;
+            let mut output = ui_frame(&ctx, &mut app, size, vec![]);
+            for _ in 0..12 {
+                output = ui_frame(&ctx, &mut app, size, vec![]);
+            }
+            let output = ui_click(&ctx, &mut app, size, label_rect(&output, "자동").center());
+            ui_click(&ctx, &mut app, size, label_rect(&output, "직선").center());
+            let d = &app.project.as_ref().unwrap().diagrams[0];
+            assert_eq!(d.relations[0].route_mode, RouteMode::Straight);
+            assert_eq!(crate::routing::path(d, &d.relations[0]).len(), 2);
+            let output = ui_frame(&ctx, &mut app, size, vec![]);
+            let output = ui_click(&ctx, &mut app, size, label_rect(&output, "자동").center());
+            ui_click(
+                &ctx,
+                &mut app,
+                size,
+                label_rect(&output, "오른쪽 중앙").center(),
+            );
+            let d = &app.project.as_ref().unwrap().diagrams[0];
+            assert_eq!(
+                d.relations[0].source_port,
+                ConnectionPoint::centered(PortSide::Right)
+            );
+            assert_eq!(
+                crate::routing::path(d, &d.relations[0])[0].x,
+                d.nodes[0].layout.pos.x + d.nodes[0].layout.size.x
             );
         }
     }

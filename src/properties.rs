@@ -502,40 +502,166 @@ pub fn properties(
                 .strong()
                 .color(crate::theme::BLUE_TEXT),
         );
-        enum_combo(ui, "관계 종류", &mut r.kind, &RelationKind::ALL, |k| {
-            k.label().into()
-        });
+        crate::components::field_label(ui, "관계 종류");
+        egui::ComboBox::from_id_salt("relation-kind")
+            .width(ui.available_width())
+            .selected_text(r.kind.label())
+            .show_ui(ui, |ui| {
+                for &kind in RelationKind::allowed(d.kind) {
+                    if crate::palette::relation_option(
+                        ui,
+                        kind.label(),
+                        kind,
+                        NavigationPreset::Unspecified,
+                        r.kind == kind,
+                    )
+                    .clicked()
+                    {
+                        r.kind = kind;
+                        ui.close();
+                    }
+                }
+            });
+        let (snav, tnav) = (r.source_navigation, r.target_navigation);
+        let preview = crate::scene::relation_preview(r.kind, snav, tnav);
+        let (rect, _) =
+            ui.allocate_exact_size(egui::vec2(ui.available_width(), 24.), egui::Sense::hover());
+        crate::scene::paint(
+            &preview,
+            ui.painter(),
+            rect.min + egui::vec2(12., 12.),
+            Point::default(),
+            0.85,
+        );
         field(ui, "관계 이름 / 라벨", &mut r.name);
         crate::components::section(ui, "연결 대상");
-        for (label, id) in [("시작", &mut r.source), ("도착", &mut r.target)] {
-            egui::ComboBox::from_id_salt(label)
+        if ui.button("시작↔도착 교환").clicked() {
+            r = crate::commands::reversed_relation(d, &r);
+        }
+        let (source_label, target_label) = match r.kind {
+            RelationKind::Generalization | RelationKind::Realization => {
+                ("시작 · 하위 / 구현 타입", "도착 · 상위 타입")
+            }
+            RelationKind::Aggregation | RelationKind::Composition => {
+                ("시작 · 전체 ◇", "도착 · 부분")
+            }
+            _ => ("시작", "도착"),
+        };
+        for (label, source) in [(source_label, true), (target_label, false)] {
+            let current = if source { r.source } else { r.target };
+            crate::components::field_label(ui, label);
+            egui::ComboBox::from_id_salt(("endpoint", source))
                 .width(ui.available_width())
                 .truncate()
-                .selected_text(format!(
-                    "{label}: {}",
+                .selected_text(
                     d.nodes
                         .iter()
-                        .find(|n| n.id == *id)
+                        .find(|n| n.id == current)
                         .map(|n| n.name.as_str())
-                        .unwrap_or("?")
-                ))
+                        .unwrap_or("요소 없음"),
+                )
                 .show_ui(ui, |ui| {
-                    for n in &d.nodes {
-                        ui.selectable_value(id, n.id, &n.name);
+                    for node in &d.nodes {
+                        let valid = crate::validation::endpoint_candidate(d, &r, node.id, source);
+                        let response = ui.add_enabled(
+                            valid.is_ok(),
+                            egui::Button::new(&node.name)
+                                .selected(node.id == current)
+                                .truncate(),
+                        );
+                        let clicked = response.clicked();
+                        response.on_hover_text(valid.err().unwrap_or_else(|| node.name.clone()));
+                        if clicked {
+                            if source {
+                                r.source = node.id;
+                            } else {
+                                r.target = node.id;
+                            }
+                            ui.close();
+                        }
                     }
                 });
         }
-        ui.small("일반화/구현의 도착은 상위 타입, 집합/합성의 시작은 전체입니다.");
-        if r.kind == RelationKind::Association {
-            ui.checkbox(&mut r.navigable, "연관 탐색 방향 →");
+        if d.kind == DiagramKind::Class && r.kind.has_navigation() {
+            crate::components::section(ui, "탐색 방향");
+            ui.menu_button("방향 프리셋", |ui| {
+                for preset in NavigationPreset::ALL {
+                    if crate::palette::relation_option(
+                        ui,
+                        preset.label(),
+                        r.kind,
+                        preset,
+                        (r.source_navigation, r.target_navigation) == preset.ends(),
+                    )
+                    .clicked()
+                    {
+                        r.apply_navigation(preset);
+                        ui.close();
+                    }
+                }
+            });
+            enum_combo(
+                ui,
+                "시작 끝 탐색 상태",
+                &mut r.source_navigation,
+                &Navigability::ALL,
+                |n| n.label().into(),
+            );
+            enum_combo(
+                ui,
+                "도착 끝 탐색 상태",
+                &mut r.target_navigation,
+                &Navigability::ALL,
+                |n| n.label().into(),
+            );
+            ui.small("미지정은 표시하지 않습니다. 탐색 불가는 x로 명시합니다. 다이아몬드는 전체(시작) 쪽에 유지됩니다.");
         }
         ui.collapsing("역할 · 다중성", |ui| {
             field(ui, "시작 역할", &mut r.source_role);
-            field(ui, "시작 다중성", &mut r.source_multiplicity);
+            multiplicity_field(ui, "시작 다중성", &mut r.source_multiplicity);
             field(ui, "도착 역할", &mut r.target_role);
-            field(ui, "도착 다중성", &mut r.target_multiplicity);
+            multiplicity_field(ui, "도착 다중성", &mut r.target_multiplicity);
         });
         crate::components::section(ui, "경로");
+        enum_combo(
+            ui,
+            "경로 모드",
+            &mut r.route_mode,
+            &RouteMode::ALL,
+            |mode| mode.label().into(),
+        );
+        if !crate::routing::path_obstructions(d, &r).is_empty() {
+            ui.colored_label(
+                crate::theme::ERROR,
+                "경로가 요소 내부를 지나갑니다. 연결점·경로 모드 또는 배치를 조정하세요.",
+            );
+        }
+        if r.bend.is_some() || !r.waypoints.is_empty() {
+            ui.small("수동 경로를 우선 유지합니다. 모드에 따라 다시 계산하려면 자동 경로 초기화를 선택하세요.");
+        }
+        if d.kind == DiagramKind::Class {
+            for (label, port) in [
+                ("시작 연결점", &mut r.source_port),
+                ("도착 연결점", &mut r.target_port),
+            ] {
+                let old = port.side;
+                enum_combo(ui, label, &mut port.side, &PortSide::ALL, |side| {
+                    side.label().into()
+                });
+                if old != port.side {
+                    port.offset = 0.5;
+                }
+                if port.side != PortSide::Auto {
+                    ui.add(
+                        egui::DragValue::new(&mut port.offset)
+                            .range(0.0..=1.)
+                            .speed(0.01)
+                            .prefix("테두리 위치 "),
+                    );
+                }
+            }
+            ui.small("선택한 관계의 양 끝 원을 드래그하면 테두리에 붙어 이동하고 가까운 연결점에 정렬됩니다.");
+        }
         if r.waypoints.is_empty() {
             let mut manual = r.bend.is_some();
             if ui.checkbox(&mut manual, "직교 경로 수동 조절").changed() {
@@ -579,9 +705,8 @@ pub fn properties(
             }
         });
         ui.small("캔버스에서 파란 조절점을 드래그해 경로를 편집합니다.");
-        if ui.button("기본 경로로 되돌리기").clicked() {
-            r.waypoints.clear();
-            r.bend = None;
+        if ui.button("자동 경로 초기화").clicked() {
+            r.reset_route();
         }
         let changed = d
             .relations
@@ -913,4 +1038,28 @@ fn specification_ui(
                 });
             }
         });
+}
+
+fn multiplicity_field(ui: &mut egui::Ui, label: &str, value: &mut String) {
+    field(ui, label, value);
+    ui.push_id(label, |ui| {
+        ui.menu_button("다중성 프리셋", |ui| {
+            for preset in ["", "0", "1", "0..1", "*", "1..*", "2..5"] {
+                if ui
+                    .button(if preset.is_empty() {
+                        "미지정"
+                    } else {
+                        preset
+                    })
+                    .clicked()
+                {
+                    *value = preset.into();
+                    ui.close();
+                }
+            }
+        });
+    });
+    if let Err(error) = crate::validation::multiplicity(value) {
+        ui.colored_label(crate::theme::ERROR, error);
+    }
 }

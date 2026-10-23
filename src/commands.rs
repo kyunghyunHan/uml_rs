@@ -425,3 +425,17 @@ pub fn duplicate_diagram(d: &Diagram) -> Diagram {
     out.view = d.view;
     out
 }
+
+/// Materialize manual elbows before reversing so their geometry stays reversible.
+pub fn reversed_relation(d: &Diagram, relation: &Relation) -> Relation {
+    let mut r = relation.clone();
+    if !r.waypoints.is_empty() || r.bend.is_some() {
+        let points = crate::routing::path(d, &r);
+        if points.len() > 2 {
+            r.waypoints = points[1..points.len() - 1].to_vec();
+        }
+        r.bend = None;
+    }
+    r.swap_ends();
+    r
+}

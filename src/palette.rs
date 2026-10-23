@@ -192,3 +192,109 @@ pub fn sequence_button(
     response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, enabled, label));
     response.on_hover_text(format!("{label}를 추가한 뒤 속성 패널에서 편집하세요"))
 }
+
+#[derive(Clone)]
+pub struct RelationChoice {
+    pub kind: RelationKind,
+    pub preset: NavigationPreset,
+    pub label: String,
+}
+pub fn relation_choices(diagram: DiagramKind) -> Vec<RelationChoice> {
+    let mut choices = vec![];
+    for &kind in RelationKind::allowed(diagram) {
+        if diagram == DiagramKind::Class && kind == RelationKind::Association {
+            for preset in NavigationPreset::ALL {
+                choices.push(RelationChoice {
+                    kind,
+                    preset,
+                    label: format!(
+                        "{} · {}",
+                        if preset == NavigationPreset::Unspecified {
+                            "일반 연관"
+                        } else {
+                            "방향 연관"
+                        },
+                        preset.label()
+                    ),
+                });
+            }
+        } else {
+            choices.push(RelationChoice {
+                kind,
+                preset: NavigationPreset::Unspecified,
+                label: relation_label(diagram, kind),
+            });
+        }
+    }
+    choices
+}
+pub fn relation_option(
+    ui: &mut egui::Ui,
+    label: &str,
+    kind: RelationKind,
+    preset: NavigationPreset,
+    selected: bool,
+) -> egui::Response {
+    let (source, target) = preset.ends();
+    relation_option_ends(ui, label, kind, source, target, selected)
+}
+pub fn relation_option_ends(
+    ui: &mut egui::Ui,
+    label: &str,
+    kind: RelationKind,
+    source: Navigability,
+    target: Navigability,
+    selected: bool,
+) -> egui::Response {
+    let width = (crate::model::text_width(label, 13.) + 104.).clamp(260., 580.);
+    let (rect, response) = ui.allocate_exact_size(
+        egui::vec2(
+            width.min((ui.ctx().content_rect().width() - 32.).max(260.)),
+            crate::theme::CONTROL_HEIGHT,
+        ),
+        Sense::click(),
+    );
+    ui.painter().rect_filled(
+        rect,
+        4.,
+        if selected {
+            crate::theme::BLUE_LIGHT
+        } else if response.hovered() || response.has_focus() {
+            crate::theme::HOVER
+        } else {
+            Color32::TRANSPARENT
+        },
+    );
+    let preview = crate::scene::relation_preview(kind, source, target);
+    crate::scene::paint(
+        &preview,
+        ui.painter(),
+        rect.min + egui::vec2(10., 16.),
+        Point::default(),
+        0.72,
+    );
+    let galley = egui::WidgetText::from(label).into_galley(
+        ui,
+        Some(egui::TextWrapMode::Truncate),
+        (rect.width() - 90.).max(1.),
+        egui::TextStyle::Button,
+    );
+    ui.painter().galley(
+        rect.min + egui::vec2(86., (32. - galley.size().y) / 2.),
+        galley,
+        if selected {
+            crate::theme::BLUE_TEXT
+        } else {
+            crate::theme::TEXT
+        },
+    );
+    response.widget_info(|| {
+        egui::WidgetInfo::selected(
+            egui::WidgetType::SelectableLabel,
+            ui.is_enabled(),
+            selected,
+            label,
+        )
+    });
+    response.on_hover_text(label)
+}

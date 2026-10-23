@@ -1,5 +1,135 @@
 //! A richer review fixture: multilingual labels, all layouts and stable cross-diagram links.
 use crate::model::*;
+
+/// Review fixture for endpoint decorations and routes; also used by export checks.
+pub fn relationship_review_project() -> Project {
+    let mut p = Project::new(
+        "클래스 관계 · 방향과 경로",
+        DiagramKind::Class,
+        "관계 표기 검토",
+    );
+    let d = &mut p.diagrams[0];
+    for (index, (kind, preset, name)) in [
+        (
+            RelationKind::Association,
+            NavigationPreset::Unspecified,
+            "일반 연관 · 방향 미지정",
+        ),
+        (
+            RelationKind::Association,
+            NavigationPreset::Forward,
+            "시작→도착",
+        ),
+        (
+            RelationKind::Association,
+            NavigationPreset::Reverse,
+            "도착→시작",
+        ),
+        (RelationKind::Association, NavigationPreset::Both, "양방향"),
+        (
+            RelationKind::Association,
+            NavigationPreset::Forward,
+            "시작 탐색 불가 · 도착 탐색 가능",
+        ),
+        (
+            RelationKind::Aggregation,
+            NavigationPreset::Both,
+            "집합 · 다이아몬드와 탐색 독립",
+        ),
+        (
+            RelationKind::Composition,
+            NavigationPreset::Forward,
+            "합성 · 전체 1 / 부분 0..*",
+        ),
+        (
+            RelationKind::Generalization,
+            NavigationPreset::Unspecified,
+            "일반화 · 하위→상위",
+        ),
+        (
+            RelationKind::Realization,
+            NavigationPreset::Unspecified,
+            "구현 · 클래스→인터페이스",
+        ),
+        (
+            RelationKind::Dependency,
+            NavigationPreset::Unspecified,
+            "의존 · 직교 장애물 회피",
+        ),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let x = 40. + (index % 2) as f32 * 820.;
+        let y = 60. + (index / 2) as f32 * 230.;
+        let mut a = Node::new(NodeKind::Class, Point::new(x, y));
+        a.name = format!("Source {}", index + 1);
+        a.sizing = SizeMode::Manual;
+        a.layout.size = Point::new(180., 100.);
+        let mut b = Node::new(
+            if kind == RelationKind::Realization {
+                NodeKind::Interface
+            } else if kind == RelationKind::Generalization {
+                NodeKind::AbstractClass
+            } else {
+                NodeKind::Class
+            },
+            Point::new(x + 420., y),
+        );
+        b.name = format!("Target {}", index + 1);
+        b.sizing = SizeMode::Manual;
+        b.layout.size = Point::new(180., 100.);
+        a.attributes.push(Member {
+            name: "count".into(),
+            type_name: "int".into(),
+            is_static: true,
+            ..Default::default()
+        });
+        b.methods.push(Member {
+            name: "execute".into(),
+            type_name: "void".into(),
+            is_abstract: true,
+            ..Default::default()
+        });
+        let mut r = Relation::new(a.id, b.id, kind);
+        r.name = name.into();
+        r.apply_navigation(preset);
+        if kind.has_navigation() {
+            r.source_role = "owner".into();
+            r.target_role = "items".into();
+            r.source_multiplicity = "1".into();
+            r.target_multiplicity = "0..*".into();
+        }
+        if index == 4 {
+            r.source_navigation = Navigability::NonNavigable;
+        }
+        if kind == RelationKind::Dependency {
+            r.route_mode = RouteMode::Orthogonal;
+            let mut obstacle = Node::new(NodeKind::Class, Point::new(x + 250., y - 5.));
+            obstacle.name = "Obstacle".into();
+            obstacle.sizing = SizeMode::Manual;
+            obstacle.layout.size = Point::new(100., 110.);
+            d.nodes.push(obstacle);
+        }
+        d.nodes.extend([a, b]);
+        d.relations.push(r);
+    }
+    let mut self_node = Node::new(NodeKind::Class, Point::new(40., 1250.));
+    self_node.name = "Self association".into();
+    self_node.sizing = SizeMode::Manual;
+    self_node.layout.size = Point::new(180., 100.);
+    let mut self_relation = Relation::new(self_node.id, self_node.id, RelationKind::Association);
+    self_relation.name = "자기 연관 · 직선 모드에서도 루프".into();
+    self_relation.apply_navigation(NavigationPreset::Both);
+    self_relation.route_mode = RouteMode::Straight;
+    d.nodes.push(self_node);
+    d.relations.push(self_relation);
+    let mut parallel = Relation::new(d.nodes[0].id, d.nodes[1].id, RelationKind::Association);
+    parallel.name = "겹친 관계의 자동 분리".into();
+    parallel.apply_navigation(NavigationPreset::Reverse);
+    d.relations.push(parallel);
+    p
+}
 pub fn review_project() -> Project {
     let mut p = crate::app::example_project();
     p.name = "정렬 프로그램 · 개선 검증".into();

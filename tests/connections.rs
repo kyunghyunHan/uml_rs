@@ -499,3 +499,121 @@ fn destination_feedback_is_drawn_on_canvas_and_cleared_after_retry() {
         assert!(!contains_text(c.output.as_ref().unwrap(), reason));
     }
 }
+
+fn output_text_center(output: &egui::FullOutput, label: &str) -> egui::Pos2 {
+    fn find(shape: &egui::Shape, label: &str) -> Option<egui::Pos2> {
+        match shape {
+            egui::Shape::Text(t) if t.galley.job.text == label => {
+                Some(t.pos + t.galley.size() / 2.)
+            }
+            egui::Shape::Vec(shapes) => shapes.iter().find_map(|s| find(s, label)),
+            _ => None,
+        }
+    }
+    output
+        .shapes
+        .iter()
+        .find_map(|s| find(&s.shape, label))
+        .expect(label)
+}
+#[test]
+fn class_invalid_start_is_explained_before_picking_a_source() {
+    for (node, kind) in [
+        (NodeKind::Note, RelationKind::Association),
+        (NodeKind::Interface, RelationKind::Realization),
+        (NodeKind::Enumeration, RelationKind::Generalization),
+    ] {
+        let mut c = Canvas::new(DiagramKind::Class, node, NodeKind::Class, kind, 1.);
+        assert!(!c.click(c.point(0)));
+        assert!(c.state.connection.is_none());
+        assert!(contains_text(c.output.as_ref().unwrap(), "시작 대상으로"));
+    }
+}
+#[test]
+fn relationship_context_menu_changes_route_and_preserves_manual_points_until_reset() {
+    let mut c = Canvas::new(
+        DiagramKind::Class,
+        NodeKind::Class,
+        NodeKind::Class,
+        RelationKind::Association,
+        1.,
+    );
+    c.click(c.point(0));
+    c.click(c.point(1));
+    c.tool = Tool::Select;
+    c.run(vec![]);
+    fn open_menu(c: &mut Canvas) {
+        let points = uml_studio::routing::path(&c.diagram, &c.diagram.relations[0]);
+        let pair = points
+            .windows(2)
+            .max_by(|a, b| {
+                ((a[1].x - a[0].x).hypot(a[1].y - a[0].y))
+                    .total_cmp(&((b[1].x - b[0].x).hypot(b[1].y - b[0].y)))
+            })
+            .unwrap();
+        let p = world_to_screen(
+            Point::new((pair[0].x + pair[1].x) / 2., (pair[0].y + pair[1].y) / 2.),
+            egui::Pos2::ZERO,
+            c.diagram.view,
+        );
+        c.run(vec![Event::PointerMoved(p)]);
+        for pressed in [true, false] {
+            c.run(vec![Event::PointerButton {
+                pos: p,
+                button: PointerButton::Secondary,
+                pressed,
+                modifiers: Modifiers::NONE,
+            }]);
+        }
+        c.run(vec![]);
+    }
+    open_menu(&mut c);
+    let pos = output_text_center(c.output.as_ref().unwrap(), "직교 경로");
+    c.click(pos);
+    assert_eq!(c.diagram.relations[0].route_mode, RouteMode::Orthogonal);
+    c.diagram.relations[0].waypoints = vec![Point::new(420., 140.), Point::new(420., 280.)];
+    let authored = c.diagram.relations[0].waypoints.clone();
+    c.run(vec![]);
+    open_menu(&mut c);
+    let pos = output_text_center(c.output.as_ref().unwrap(), "직선 경로");
+    c.click(pos);
+    assert_eq!(c.diagram.relations[0].route_mode, RouteMode::Straight);
+    assert_eq!(c.diagram.relations[0].waypoints, authored);
+    c.run(vec![]);
+    open_menu(&mut c);
+    let pos = output_text_center(c.output.as_ref().unwrap(), "자동 경로 초기화");
+    c.click(pos);
+    assert!(c.diagram.relations[0].waypoints.is_empty());
+    assert_eq!(c.diagram.relations[0].route_mode, RouteMode::Auto);
+}
+#[test]
+fn dragging_an_endpoint_snaps_on_the_boundary_without_moving_the_class() {
+    let mut c = Canvas::new(
+        DiagramKind::Class,
+        NodeKind::Class,
+        NodeKind::Class,
+        RelationKind::Association,
+        1.,
+    );
+    c.click(c.point(0));
+    c.click(c.point(1));
+    c.tool = Tool::Select;
+    c.state.snap = true;
+    c.run(vec![]);
+    let r = c.diagram.relations[0].clone();
+    let nodes = c.diagram.nodes.clone();
+    let points = uml_studio::routing::path(&c.diagram, &r);
+    let from = world_to_screen(points[0], egui::Pos2::ZERO, c.diagram.view);
+    let n = &c.diagram.nodes[0];
+    let top = Point::new(n.layout.center().x + 3., n.layout.pos.y);
+    let to = world_to_screen(top, egui::Pos2::ZERO, c.diagram.view);
+    assert!(c.drag(from, to));
+    assert_eq!(c.diagram.relations[0].source_port.side, PortSide::Top);
+    assert!((c.diagram.relations[0].source_port.offset - 0.5).abs() < 0.001);
+    assert_eq!(c.diagram.nodes, nodes);
+    let p = uml_studio::routing::path(&c.diagram, &c.diagram.relations[0])[0];
+    assert_eq!(
+        p,
+        Point::new(nodes[0].layout.center().x, nodes[0].layout.pos.y)
+    );
+}

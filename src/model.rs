@@ -303,6 +303,33 @@ impl RelationKind {
         Self::Extend,
         Self::Comment,
     ];
+    pub fn allowed(diagram: DiagramKind) -> &'static [Self] {
+        match diagram {
+            DiagramKind::Class => &[
+                Self::Association,
+                Self::Dependency,
+                Self::Generalization,
+                Self::Realization,
+                Self::Aggregation,
+                Self::Composition,
+                Self::Comment,
+            ],
+            DiagramKind::UseCase => &[
+                Self::Association,
+                Self::Include,
+                Self::Extend,
+                Self::Generalization,
+                Self::Comment,
+            ],
+            DiagramKind::Sequence => &[],
+        }
+    }
+    pub fn has_navigation(self) -> bool {
+        matches!(
+            self,
+            Self::Association | Self::Aggregation | Self::Composition
+        )
+    }
     pub fn label(self) -> &'static str {
         match self {
             Self::Association => "연관",
@@ -317,6 +344,107 @@ impl RelationKind {
         }
     }
 }
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Navigability {
+    #[default]
+    Unspecified,
+    Navigable,
+    NonNavigable,
+}
+impl Navigability {
+    pub const ALL: [Self; 3] = [Self::Unspecified, Self::Navigable, Self::NonNavigable];
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Unspecified => "미지정 · 표시 없음",
+            Self::Navigable => "탐색 가능 · 열린 화살표",
+            Self::NonNavigable => "탐색 불가 · x",
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum NavigationPreset {
+    #[default]
+    Unspecified,
+    Forward,
+    Reverse,
+    Both,
+}
+impl NavigationPreset {
+    pub const ALL: [Self; 4] = [Self::Unspecified, Self::Forward, Self::Reverse, Self::Both];
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Unspecified => "방향 미지정",
+            Self::Forward => "시작→도착",
+            Self::Reverse => "도착→시작",
+            Self::Both => "양방향",
+        }
+    }
+    pub fn ends(self) -> (Navigability, Navigability) {
+        use Navigability::*;
+        match self {
+            Self::Unspecified => (Unspecified, Unspecified),
+            Self::Forward => (Unspecified, Navigable),
+            Self::Reverse => (Navigable, Unspecified),
+            Self::Both => (Navigable, Navigable),
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RouteMode {
+    #[default]
+    Auto,
+    Straight,
+    Orthogonal,
+}
+impl RouteMode {
+    pub const ALL: [Self; 3] = [Self::Auto, Self::Straight, Self::Orthogonal];
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Auto => "자동",
+            Self::Straight => "직선",
+            Self::Orthogonal => "직교",
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PortSide {
+    #[default]
+    Auto,
+    Top,
+    Bottom,
+    Left,
+    Right,
+}
+impl PortSide {
+    pub const ALL: [Self; 5] = [Self::Auto, Self::Top, Self::Bottom, Self::Left, Self::Right];
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Auto => "자동",
+            Self::Top => "위 중앙",
+            Self::Bottom => "아래 중앙",
+            Self::Left => "왼쪽 중앙",
+            Self::Right => "오른쪽 중앙",
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ConnectionPoint {
+    pub side: PortSide,
+    pub offset: f32,
+}
+impl Default for ConnectionPoint {
+    fn default() -> Self {
+        Self {
+            side: PortSide::Auto,
+            offset: 0.5,
+        }
+    }
+}
+impl ConnectionPoint {
+    pub fn centered(side: PortSide) -> Self {
+        Self { side, offset: 0.5 }
+    }
+}
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Relation {
     pub id: Id,
@@ -328,12 +456,37 @@ pub struct Relation {
     pub target_role: String,
     pub source_multiplicity: String,
     pub target_multiplicity: String,
-    pub navigable: bool,
+    #[serde(default)]
+    pub source_navigation: Navigability,
+    #[serde(default)]
+    pub target_navigation: Navigability,
+    #[serde(default)]
+    pub route_mode: RouteMode,
+    #[serde(default)]
+    pub source_port: ConnectionPoint,
+    #[serde(default)]
+    pub target_port: ConnectionPoint,
     pub bend: Option<f32>,
     #[serde(default)]
     pub waypoints: Vec<Point>,
 }
 impl Relation {
+    pub fn apply_navigation(&mut self, preset: NavigationPreset) {
+        (self.source_navigation, self.target_navigation) = preset.ends();
+    }
+    pub fn reset_route(&mut self) {
+        self.route_mode = RouteMode::Auto;
+        self.bend = None;
+        self.waypoints.clear();
+    }
+    pub fn swap_ends(&mut self) {
+        std::mem::swap(&mut self.source, &mut self.target);
+        std::mem::swap(&mut self.source_role, &mut self.target_role);
+        std::mem::swap(&mut self.source_multiplicity, &mut self.target_multiplicity);
+        std::mem::swap(&mut self.source_navigation, &mut self.target_navigation);
+        std::mem::swap(&mut self.source_port, &mut self.target_port);
+        self.waypoints.reverse();
+    }
     pub fn new(source: Id, target: Id, kind: RelationKind) -> Self {
         Self {
             id: id(),
@@ -345,7 +498,11 @@ impl Relation {
             target_role: String::new(),
             source_multiplicity: String::new(),
             target_multiplicity: String::new(),
-            navigable: false,
+            source_navigation: Navigability::Unspecified,
+            target_navigation: Navigability::Unspecified,
+            route_mode: RouteMode::Auto,
+            source_port: ConnectionPoint::default(),
+            target_port: ConnectionPoint::default(),
             bend: None,
             waypoints: vec![],
         }
@@ -661,7 +818,7 @@ impl Project {
         diagram_name: impl Into<String>,
     ) -> Self {
         Self {
-            format_version: 2,
+            format_version: 3,
             id: id(),
             name: name.into(),
             diagrams: vec![Diagram::new(kind, diagram_name)],
@@ -682,9 +839,9 @@ impl Project {
         crate::references::synchronize(self);
     }
     pub fn validate_structure(&self) -> Result<(), String> {
-        if self.format_version != 2 {
+        if self.format_version != 3 {
             return Err(format!(
-                "지원하지 않는 프로젝트 버전: {} (지원: 2)",
+                "지원하지 않는 프로젝트 버전: {} (지원: 3)",
                 self.format_version
             ));
         }
@@ -723,7 +880,10 @@ impl Project {
             }
             for r in &d.relations {
                 insert(r.id)?;
-                if r.bend.is_some_and(|v| !v.is_finite())
+                if [r.source_port, r.target_port]
+                    .iter()
+                    .any(|p| !p.offset.is_finite() || !(0.0..=1.).contains(&p.offset))
+                    || r.bend.is_some_and(|v| !v.is_finite())
                     || r.waypoints
                         .iter()
                         .any(|p| !p.x.is_finite() || !p.y.is_finite())
