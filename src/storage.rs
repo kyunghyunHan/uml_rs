@@ -23,12 +23,18 @@ pub fn load(path: &Path) -> Result<Project, String> {
         .get("format_version")
         .and_then(|v| v.as_u64())
         .ok_or("프로젝트 저장 형식 버전이 없거나 올바르지 않습니다")?;
-    if version != 1 {
-        return Err(format!("지원하지 않는 프로젝트 버전: {version} (지원: 1)"));
+    if version != 1 && version != 2 {
+        return Err(format!(
+            "지원하지 않는 프로젝트 버전: {version} (지원: 1, 2)"
+        ));
     }
-    let p: Project = serde_json::from_value(value)
+    let mut p: Project = serde_json::from_value(value)
         .map_err(|e| format!("프로젝트 구조를 읽을 수 없습니다: {e}"))?;
-    p.validate()?;
+    if version == 1 {
+        crate::migration::v1_to_v2(&mut p);
+    }
+    p.validate_structure()?;
+    p.synchronize_links();
     Ok(p)
 }
 pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
@@ -55,6 +61,10 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
 }
 pub fn save(path: &Path, p: &Project) -> Result<(), String> {
     p.validate()?;
+    save_recovery(path, p)
+}
+pub fn save_recovery(path: &Path, p: &Project) -> Result<(), String> {
+    p.validate_structure()?;
     let bytes = serde_json::to_vec_pretty(p).map_err(|e| e.to_string())?;
     if bytes.len() > MAX_PROJECT_BYTES {
         return Err("프로젝트가 32 MiB 제한을 초과했습니다".into());

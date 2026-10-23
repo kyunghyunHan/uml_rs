@@ -61,6 +61,9 @@ pub enum NodeKind {
     Actor,
     UseCase,
     Boundary,
+    Note,
+    Enumeration,
+    Package,
 }
 impl NodeKind {
     pub fn label(self) -> &'static str {
@@ -71,6 +74,9 @@ impl NodeKind {
             Self::Actor => "액터",
             Self::UseCase => "유스케이스",
             Self::Boundary => "시스템 경계",
+            Self::Note => "노트",
+            Self::Enumeration => "열거형",
+            Self::Package => "패키지",
         }
     }
 }
@@ -100,6 +106,56 @@ impl Default for Member {
     }
 }
 impl Member {
+    pub fn parse(input: &str, method: bool) -> Result<Self, String> {
+        let mut text = input.trim();
+        let mut member = Member::default();
+        if text.starts_with(['+', '-', '#', '~']) {
+            member.visibility = text[..1].into();
+            text = text[1..].trim();
+        }
+        for _ in 0..2 {
+            if let Some(rest) = text.strip_prefix("static ") {
+                member.is_static = true;
+                text = rest.trim();
+            } else if let Some(rest) = text.strip_prefix("abstract ") {
+                member.is_abstract = true;
+                text = rest.trim();
+            }
+        }
+        if method {
+            let open = text
+                .find('(')
+                .ok_or("메서드는 이름(매개변수): 반환타입 형식으로 입력하세요")?;
+            let close = text
+                .rfind(')')
+                .filter(|i| *i > open)
+                .ok_or("메서드 매개변수의 닫는 괄호가 필요합니다")?;
+            member.name = text[..open].trim().into();
+            member.parameters = text[open + 1..close].trim().into();
+            member.type_name = text[close + 1..]
+                .trim()
+                .strip_prefix(':')
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .ok_or("반환 타입을 : 뒤에 입력하세요")?
+                .into();
+        } else {
+            let (left, value) = text
+                .split_once('=')
+                .map(|(l, v)| (l, Some(v)))
+                .unwrap_or((text, None));
+            let (name, ty) = left
+                .split_once(':')
+                .ok_or("속성은 이름: 타입 = 기본값 형식으로 입력하세요")?;
+            member.name = name.trim().into();
+            member.type_name = ty.trim().into();
+            member.value = value.unwrap_or("").trim().into();
+        }
+        if member.name.is_empty() || member.type_name.is_empty() {
+            return Err("이름과 타입을 입력하세요".into());
+        }
+        Ok(member)
+    }
     pub fn text(&self, method: bool) -> String {
         let mut s = if method {
             format!(
@@ -115,6 +171,23 @@ impl Member {
         s
     }
 }
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SizeMode {
+    Auto,
+    #[default]
+    Manual,
+}
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct UseCaseSpec {
+    pub goal: String,
+    pub description: String,
+    pub primary_actor: String,
+    pub preconditions: String,
+    pub basic_flow: String,
+    pub alternatives: String,
+    pub postconditions: String,
+    pub sequences: Vec<Id>,
+}
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Node {
     pub id: Id,
@@ -123,13 +196,21 @@ pub struct Node {
     pub attributes: Vec<Member>,
     pub methods: Vec<Member>,
     pub layout: Layout,
+    #[serde(default)]
+    pub sizing: SizeMode,
+    #[serde(default)]
+    pub hide_empty: bool,
+    #[serde(default)]
+    pub specification: UseCaseSpec,
+    #[serde(default)]
+    pub boundary: Option<Id>,
 }
 impl Node {
     pub fn new(kind: NodeKind, pos: Point) -> Self {
         let (w, h) = match kind {
             NodeKind::Actor => (90., 130.),
             NodeKind::UseCase => (180., 80.),
-            NodeKind::Boundary => (500., 350.),
+            NodeKind::Boundary | NodeKind::Package => (500., 350.),
             _ => (230., 150.),
         };
         Self {
@@ -139,24 +220,48 @@ impl Node {
             attributes: vec![],
             methods: vec![],
             layout: Layout::new(pos.x, pos.y, w, h),
+            sizing: if matches!(
+                kind,
+                NodeKind::Class
+                    | NodeKind::Interface
+                    | NodeKind::AbstractClass
+                    | NodeKind::Enumeration
+            ) {
+                SizeMode::Auto
+            } else {
+                SizeMode::Manual
+            },
+            hide_empty: false,
+            specification: UseCaseSpec::default(),
+            boundary: None,
         }
     }
     pub fn fit(&mut self) {
-        let lines: Vec<String> = std::iter::once(self.name.clone())
-            .chain(self.attributes.iter().map(|m| m.text(false)))
-            .chain(self.methods.iter().map(|m| m.text(true)))
-            .collect();
-        self.layout.size = Point::new(
-            lines
-                .iter()
-                .map(|s| text_width(s, 14.) + 30.)
-                .fold(170., f32::max),
-            48. + if self.kind == NodeKind::Interface {
-                18.
-            } else {
-                0.
-            } + 24. * (self.attributes.len().max(1) + self.methods.len().max(1)) as f32,
-        );
+        self.layout.size = crate::text_layout::class_layout(self, None).size;
+    }
+    pub fn is_classifier(&self) -> bool {
+        matches!(
+            self.kind,
+            NodeKind::Class | NodeKind::AbstractClass | NodeKind::Interface | NodeKind::Enumeration
+        )
+    }
+    pub fn reflow(&mut self) {
+        if self.sizing == SizeMode::Auto && self.is_classifier() {
+            self.fit();
+        }
+        if self.kind == NodeKind::Actor {
+            let lines =
+                crate::text_layout::wrap(&self.name, 14., (self.layout.size.x - 8.).max(20.));
+            self.layout.size.y = self.layout.size.y.max(lines.len() as f32 * 22. + 46.);
+        }
+        if self.kind == NodeKind::UseCase {
+            let lines = crate::text_layout::wrap(&self.name, 15., self.layout.size.x * 0.72);
+            self.layout.size.y = self.layout.size.y.max(lines.len() as f32 * 23. + 30.);
+        }
+        if self.kind == NodeKind::Note {
+            let lines = crate::text_layout::wrap(&self.name, 14., self.layout.size.x - 28.);
+            self.layout.size.y = self.layout.size.y.max(lines.len() as f32 * 23. + 40.);
+        }
     }
 }
 pub fn text_width(s: &str, size: f32) -> f32 {
@@ -184,9 +289,10 @@ pub enum RelationKind {
     Composition,
     Include,
     Extend,
+    Comment,
 }
 impl RelationKind {
-    pub const ALL: [Self; 8] = [
+    pub const ALL: [Self; 9] = [
         Self::Association,
         Self::Dependency,
         Self::Generalization,
@@ -195,6 +301,7 @@ impl RelationKind {
         Self::Composition,
         Self::Include,
         Self::Extend,
+        Self::Comment,
     ];
     pub fn label(self) -> &'static str {
         match self {
@@ -206,6 +313,7 @@ impl RelationKind {
             Self::Composition => "합성 (시작=전체)",
             Self::Include => "include → 포함 대상",
             Self::Extend => "extend → 기본",
+            Self::Comment => "주석 연결",
         }
     }
 }
@@ -222,6 +330,8 @@ pub struct Relation {
     pub target_multiplicity: String,
     pub navigable: bool,
     pub bend: Option<f32>,
+    #[serde(default)]
+    pub waypoints: Vec<Point>,
 }
 impl Relation {
     pub fn new(source: Id, target: Id, kind: RelationKind) -> Self {
@@ -237,6 +347,7 @@ impl Relation {
             target_multiplicity: String::new(),
             navigable: false,
             bend: None,
+            waypoints: vec![],
         }
     }
 }
@@ -245,20 +356,32 @@ pub struct Participant {
     pub id: Id,
     pub name: String,
     pub actor: bool,
+    #[serde(default)]
+    pub type_ref: Option<Id>,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MessageKind {
     Sync,
     Async,
     Return,
+    Create,
+    Destroy,
 }
 impl MessageKind {
-    pub const ALL: [Self; 3] = [Self::Sync, Self::Async, Self::Return];
+    pub const ALL: [Self; 5] = [
+        Self::Sync,
+        Self::Async,
+        Self::Return,
+        Self::Create,
+        Self::Destroy,
+    ];
     pub fn label(self) -> &'static str {
         match self {
             Self::Sync => "동기 호출",
             Self::Async => "비동기",
             Self::Return => "반환",
+            Self::Create => "객체 생성",
+            Self::Destroy => "객체 소멸",
         }
     }
 }
@@ -269,6 +392,8 @@ pub struct Message {
     pub target: Id,
     pub kind: MessageKind,
     pub text: String,
+    #[serde(default)]
+    pub method_ref: Option<Id>,
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Activation {
@@ -276,6 +401,8 @@ pub struct Activation {
     pub participant: Id,
     pub start: Id,
     pub end: Id,
+    #[serde(default)]
+    pub automatic: bool,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FragmentKind {
@@ -292,6 +419,10 @@ pub struct Fragment {
     pub start: Id,
     pub end: Id,
     pub split: Option<Id>,
+    #[serde(default)]
+    pub participant_start: Option<Id>,
+    #[serde(default)]
+    pub participant_end: Option<Id>,
 }
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Sequence {
@@ -299,8 +430,52 @@ pub struct Sequence {
     pub messages: Vec<Message>,
     pub activations: Vec<Activation>,
     pub fragments: Vec<Fragment>,
+    #[serde(default)]
+    pub auto_activate: bool,
 }
 impl Sequence {
+    pub fn regenerate_activations(&mut self) {
+        let existing: HashMap<_, _> = self
+            .activations
+            .iter()
+            .filter(|a| a.automatic)
+            .map(|a| ((a.participant, a.start), a.id))
+            .collect();
+        self.activations.retain(|a| !a.automatic);
+        if !self.auto_activate {
+            return;
+        }
+        let Some(last) = self.messages.last().map(|m| m.id) else {
+            return;
+        };
+        let mut stack: Vec<(Id, Id, usize)> = vec![];
+        for m in &self.messages {
+            if m.kind == MessageKind::Sync
+                && !self
+                    .activations
+                    .iter()
+                    .any(|a| !a.automatic && a.participant == m.target && a.start == m.id)
+            {
+                let index = self.activations.len();
+                self.activations.push(Activation {
+                    id: existing.get(&(m.target, m.id)).copied().unwrap_or_else(id),
+                    participant: m.target,
+                    start: m.id,
+                    end: last,
+                    automatic: true,
+                });
+                stack.push((m.source, m.target, index));
+            }
+            if m.kind == MessageKind::Return
+                && let Some(i) = stack
+                    .iter()
+                    .rposition(|(caller, callee, _)| *caller == m.target && *callee == m.source)
+            {
+                let (_, _, index) = stack.remove(i);
+                self.activations[index].end = m.id;
+            }
+        }
+    }
     pub fn normalize(&mut self) {
         let ps: HashSet<_> = self.participants.iter().map(|p| p.id).collect();
         self.messages
@@ -324,6 +499,12 @@ impl Sequence {
             }
         }
         for f in &mut self.fragments {
+            if f.participant_start.is_some_and(|id| !ps.contains(&id)) {
+                f.participant_start = None;
+            }
+            if f.participant_end.is_some_and(|id| !ps.contains(&id)) {
+                f.participant_end = None;
+            }
             if order[&f.start] > order[&f.end] {
                 std::mem::swap(&mut f.start, &mut f.end);
             }
@@ -402,8 +583,28 @@ impl Diagram {
             view: View::default(),
         }
     }
+    pub fn add_relation(&mut self, r: Relation) -> Result<(), String> {
+        crate::validation::relation(self, &r)?;
+        self.relations.push(r);
+        Ok(())
+    }
+    pub fn update_relation(&mut self, r: Relation) -> Result<(), String> {
+        crate::validation::relation(self, &r)?;
+        let slot = self
+            .relations
+            .iter_mut()
+            .find(|old| old.id == r.id)
+            .ok_or("수정할 관계를 찾을 수 없습니다")?;
+        *slot = r;
+        Ok(())
+    }
     pub fn delete(&mut self, selected: &HashSet<Id>) {
         self.nodes.retain(|n| !selected.contains(&n.id));
+        for n in &mut self.nodes {
+            if n.boundary.is_some_and(|id| selected.contains(&id)) {
+                n.boundary = None;
+            }
+        }
         self.relations.retain(|r| {
             !selected.contains(&r.id)
                 && !selected.contains(&r.source)
@@ -460,16 +661,30 @@ impl Project {
         diagram_name: impl Into<String>,
     ) -> Self {
         Self {
-            format_version: 1,
+            format_version: 2,
             id: id(),
             name: name.into(),
             diagrams: vec![Diagram::new(kind, diagram_name)],
         }
     }
     pub fn validate(&self) -> Result<(), String> {
-        if self.format_version != 1 {
+        self.validate_structure()?;
+        let issues = self.diagnostics();
+        if let Some(issue) = issues.first() {
+            return Err(issue.message.clone());
+        }
+        Ok(())
+    }
+    pub fn diagnostics(&self) -> Vec<crate::validation::Diagnostic> {
+        crate::validation::project_diagnostics(self)
+    }
+    pub fn synchronize_links(&mut self) {
+        crate::references::synchronize(self);
+    }
+    pub fn validate_structure(&self) -> Result<(), String> {
+        if self.format_version != 2 {
             return Err(format!(
-                "지원하지 않는 프로젝트 버전: {} (지원: 1)",
+                "지원하지 않는 프로젝트 버전: {} (지원: 2)",
                 self.format_version
             ));
         }
@@ -491,7 +706,6 @@ impl Project {
             {
                 return Err("잘못된 화면 좌표입니다".into());
             }
-            let ns: HashSet<_> = d.nodes.iter().map(|n| n.id).collect();
             for n in &d.nodes {
                 insert(n.id)?;
                 let l = n.layout;
@@ -509,9 +723,10 @@ impl Project {
             }
             for r in &d.relations {
                 insert(r.id)?;
-                if !ns.contains(&r.source)
-                    || !ns.contains(&r.target)
-                    || r.bend.is_some_and(|v| !v.is_finite())
+                if r.bend.is_some_and(|v| !v.is_finite())
+                    || r.waypoints
+                        .iter()
+                        .any(|p| !p.x.is_finite() || !p.y.is_finite())
                 {
                     return Err("연결선의 참조/경로가 올바르지 않습니다".into());
                 }

@@ -1,6 +1,6 @@
 use crate::model::*;
 use eframe::egui::{self, Color32, Pos2, Rect, Stroke};
-use std::{collections::HashMap, fmt::Write, path::Path, sync::Arc};
+use std::{collections::HashMap, fmt::Write, path::Path};
 pub const FONT: &[u8] = include_bytes!("../assets/NanumGothic.ttf");
 #[derive(Clone)]
 pub enum Primitive {
@@ -109,6 +109,10 @@ impl Scene {
         boxes
     }
     pub fn hit(&self, p: Point, tolerance: f32) -> Option<Id> {
+        self.hits(p, tolerance).first().copied()
+    }
+    pub fn hits(&self, p: Point, tolerance: f32) -> Vec<Id> {
+        let mut out = vec![];
         for item in self.items.iter().rev() {
             let yes = match &item.primitive {
                 Primitive::Path { points, .. } => points
@@ -127,11 +131,11 @@ impl Scene {
                 }
                 _ => primitive_bounds(&item.primitive).contains(p),
             };
-            if yes {
-                return Some(item.owner);
+            if yes && !out.contains(&item.owner) {
+                out.push(item.owner);
             }
         }
-        None
+        out
     }
 }
 pub fn segment_distance(p: Point, a: Point, b: Point) -> f32 {
@@ -195,39 +199,59 @@ fn arrow(s: &mut Scene, id: Id, end: Point, previous: Point, kind: u8) {
     );
 }
 fn actor(s: &mut Scene, id: Id, r: Layout, name: &str) {
-    let cx = r.center().x;
-    let y = r.pos.y;
+    let (body, lines) = crate::routing::actor_body(r, name);
+    let map = |x: f32, y: f32| {
+        Point::new(
+            body.pos.x + x / 90. * body.size.x,
+            body.pos.y + y / 100. * body.size.y,
+        )
+    };
+    let h = map(33., 3.);
     s.push(
         id,
-        Primitive::Ellipse(Layout::new(cx - 12., y + 3., 24., 24.)),
+        Primitive::Ellipse(Layout::new(
+            h.x,
+            h.y,
+            body.size.x * 24. / 90.,
+            body.size.y * 24. / 100.,
+        )),
     );
-    s.line(
-        id,
-        vec![Point::new(cx, y + 27.), Point::new(cx, y + 70.)],
-        false,
-    );
-    s.line(
-        id,
-        vec![Point::new(cx - 25., y + 43.), Point::new(cx + 25., y + 43.)],
-        false,
-    );
-    s.line(
-        id,
-        vec![
-            Point::new(cx - 23., y + 96.),
-            Point::new(cx, y + 70.),
-            Point::new(cx + 23., y + 96.),
-        ],
-        false,
-    );
-    s.text(id, cx - text_width(name, 14.) / 2., y + 100., name, 14.);
+    for coords in [
+        vec![(45., 27.), (45., 70.)],
+        vec![(20., 43.), (70., 43.)],
+        vec![(22., 96.), (45., 70.), (68., 96.)],
+    ] {
+        s.line(
+            id,
+            coords.into_iter().map(|(x, y)| map(x, y)).collect(),
+            false,
+        );
+    }
+    for (i, line) in lines.iter().enumerate() {
+        s.text(
+            id,
+            r.center().x - text_width(line, 14.) / 2.,
+            r.pos.y + body.size.y + 4. + i as f32 * 22.,
+            line,
+            14.,
+        );
+    }
 }
 pub fn build(d: &Diagram) -> Scene {
+    let mut prepared = d.clone();
+    for n in &mut prepared.nodes {
+        n.reflow();
+    }
+    let d = &prepared;
     if d.kind == DiagramKind::Sequence {
         return sequence_scene(&d.sequence);
     }
     let mut s = Scene::default();
-    for n in d.nodes.iter().filter(|n| n.kind == NodeKind::Boundary) {
+    for n in d
+        .nodes
+        .iter()
+        .filter(|n| matches!(n.kind, NodeKind::Boundary | NodeKind::Package))
+    {
         s.boxes.insert(n.id, n.layout);
         s.rect(n.id, n.layout, false);
         s.text(
@@ -241,75 +265,17 @@ pub fn build(d: &Diagram) -> Scene {
     let mut relation_labels = Vec::new();
     // Relations are rendered behind nodes; endpoints are attached to current geometry.
     for r in &d.relations {
-        let (Some(a), Some(b)) = (
-            d.nodes.iter().find(|n| n.id == r.source),
-            d.nodes.iter().find(|n| n.id == r.target),
-        ) else {
+        let pts = crate::routing::path(d, r);
+        if pts.len() < 2 {
             continue;
-        };
-        let mut ac = a.layout.center();
-        let mut bc = b.layout.center();
-        if a.kind == NodeKind::Actor {
-            ac.y = a.layout.pos.y + 43.;
         }
-        if b.kind == NodeKind::Actor {
-            bc.y = b.layout.pos.y + 43.;
-        }
-        let sign = if bc.x >= ac.x { 1. } else { -1. };
-        let start = Point::new(
-            ac.x + sign
-                * if a.kind == NodeKind::Actor {
-                    25.
-                } else {
-                    a.layout.size.x / 2.
-                },
-            ac.y,
-        );
-        let end = Point::new(
-            bc.x - sign
-                * if b.kind == NodeKind::Actor {
-                    25.
-                } else {
-                    b.layout.size.x / 2.
-                },
-            bc.y,
-        );
-        let pts = if r.source == r.target {
-            vec![
-                start,
-                Point::new(start.x + 50., start.y),
-                Point::new(start.x + 50., start.y - 50.),
-                Point::new(ac.x, start.y - 50.),
-                Point::new(ac.x, a.layout.pos.y),
-            ]
-        } else if (ac.x - bc.x).abs() < a.layout.size.x / 2. + b.layout.size.x / 2. + 20. {
-            let sy = if bc.y > ac.y {
-                a.layout.pos.y + a.layout.size.y
-            } else {
-                a.layout.pos.y
-            };
-            let ey = if bc.y > ac.y {
-                b.layout.pos.y
-            } else {
-                b.layout.pos.y + b.layout.size.y
-            };
-            let mid = r.bend.unwrap_or((sy + ey) / 2.);
-            vec![
-                Point::new(ac.x, sy),
-                Point::new(ac.x, mid),
-                Point::new(bc.x, mid),
-                Point::new(bc.x, ey),
-            ]
-        } else {
-            let mid = r.bend.unwrap_or((start.x + end.x) / 2.);
-            vec![start, Point::new(mid, start.y), Point::new(mid, end.y), end]
-        };
         let dash = matches!(
             r.kind,
             RelationKind::Dependency
                 | RelationKind::Realization
                 | RelationKind::Include
                 | RelationKind::Extend
+                | RelationKind::Comment
         );
         s.line(r.id, pts.clone(), dash);
         let end = *pts.last().unwrap();
@@ -329,6 +295,7 @@ pub fn build(d: &Diagram) -> Scene {
                     3
                 },
             ),
+            RelationKind::Comment => {}
             RelationKind::Association => {
                 if r.navigable {
                     arrow(&mut s, r.id, end, pts[pts.len() - 2], 0)
@@ -336,20 +303,28 @@ pub fn build(d: &Diagram) -> Scene {
             }
             _ => arrow(&mut s, r.id, end, pts[pts.len() - 2], 0),
         }
-        let middle = pts[1];
         let label = match r.kind {
             RelationKind::Include => format!("«include» {}", r.name),
             RelationKind::Extend => format!("«extend» {}", r.name),
             _ => r.name.clone(),
         };
         if !label.trim().is_empty() {
-            relation_labels.push((
-                r.id,
-                Point::new(middle.x + 8., (pts[1].y + pts[2].y) / 2. - 24.),
-                label,
-                13.,
-            ));
+            let lines = crate::text_layout::wrap(&label, 13., 220.);
+            let size = Point::new(
+                lines.iter().map(|s| text_width(s, 13.)).fold(0., f32::max),
+                lines.len() as f32 * 22.,
+            );
+            let origin = crate::routing::label_position(d, &pts, size);
+            for (i, line) in lines.into_iter().enumerate() {
+                relation_labels.push((
+                    r.id,
+                    Point::new(origin.x, origin.y + i as f32 * 22.),
+                    line,
+                    13.,
+                ));
+            }
         }
+
         for (endpoint, toward, text) in [
             (
                 start,
@@ -389,7 +364,11 @@ pub fn build(d: &Diagram) -> Scene {
             relation_labels.push((r.id, pos, text, 12.));
         }
     }
-    for n in d.nodes.iter().filter(|n| n.kind != NodeKind::Boundary) {
+    for n in d
+        .nodes
+        .iter()
+        .filter(|n| !matches!(n.kind, NodeKind::Boundary | NodeKind::Package))
+    {
         let r = n.layout;
         let x = r.pos.x;
         let y = r.pos.y;
@@ -398,56 +377,63 @@ pub fn build(d: &Diagram) -> Scene {
             NodeKind::Actor => actor(&mut s, n.id, r, &n.name),
             NodeKind::UseCase => {
                 s.push(n.id, Primitive::Ellipse(r));
-                s.text(
+                let lines = crate::text_layout::wrap(&n.name, 15., r.size.x * 0.72);
+                for (i, line) in lines.iter().enumerate() {
+                    s.text(
+                        n.id,
+                        x + (r.size.x - text_width(line, 15.)) / 2.,
+                        y + (r.size.y - lines.len() as f32 * 23.) / 2. + i as f32 * 23.,
+                        line,
+                        15.,
+                    );
+                }
+            }
+            NodeKind::Note => {
+                s.rect(n.id, r, true);
+                s.line(
                     n.id,
-                    x + (r.size.x - text_width(&n.name, 15.)) / 2.,
-                    y + r.size.y / 2. - 12.,
-                    &n.name,
-                    15.,
+                    vec![
+                        Point::new(x + r.size.x - 18., y),
+                        Point::new(x + r.size.x - 18., y + 18.),
+                        Point::new(x + r.size.x, y + 18.),
+                    ],
+                    false,
                 );
+                for (i, line) in crate::text_layout::wrap(&n.name, 14., r.size.x - 28.)
+                    .iter()
+                    .enumerate()
+                {
+                    s.text(n.id, x + 10., y + 25. + i as f32 * 23., line, 14.);
+                }
             }
             _ => {
-                s.rect(n.id, r, true);
-                let extra = if n.kind == NodeKind::Interface {
-                    s.text(n.id, x + 10., y + 4., "«interface»", 12.);
-                    18.
-                } else {
-                    0.
-                };
-                s.push(
-                    n.id,
-                    Primitive::Text {
-                        pos: Point::new(x + 12., y + 6. + extra),
-                        text: n.name.clone(),
-                        size: 16.,
-                        italic: n.kind == NodeKind::AbstractClass,
-                        underline: false,
+                let layout = crate::text_layout::class_layout(
+                    n,
+                    if n.sizing == SizeMode::Manual {
+                        Some(r.size.x)
+                    } else {
+                        None
                     },
                 );
-                let first = y + 38. + extra;
-                let second = first + (n.attributes.len().max(1) as f32) * 24.;
-                for yy in [first, second] {
+                s.rect(n.id, r, true);
+                for yy in layout.separators {
                     s.line(
                         n.id,
-                        vec![Point::new(x, yy), Point::new(x + r.size.x, yy)],
+                        vec![Point::new(x, y + yy), Point::new(x + r.size.x, y + yy)],
                         false,
                     );
                 }
-                for (members, base, method) in
-                    [(&n.attributes, first, false), (&n.methods, second, true)]
-                {
-                    for (i, m) in members.iter().enumerate() {
-                        s.push(
-                            n.id,
-                            Primitive::Text {
-                                pos: Point::new(x + 10., base + 4. + i as f32 * 24.),
-                                text: m.text(method),
-                                size: 14.,
-                                italic: m.is_abstract,
-                                underline: m.is_static,
-                            },
-                        );
-                    }
+                for line in layout.lines {
+                    s.push(
+                        n.id,
+                        Primitive::Text {
+                            pos: Point::new(x + line.pos.x, y + line.pos.y),
+                            text: line.text,
+                            size: line.size,
+                            italic: line.italic,
+                            underline: line.underline,
+                        },
+                    );
                 }
             }
         }
@@ -458,132 +444,98 @@ pub fn build(d: &Diagram) -> Scene {
 
     s
 }
-fn wrap(text: &str, n: usize) -> Vec<String> {
-    let chars: Vec<_> = text.chars().collect();
-    if chars.is_empty() {
-        return vec![String::new()];
-    }
-    chars.chunks(n).map(|c| c.iter().collect()).collect()
-}
 fn sequence_scene(seq: &Sequence) -> Scene {
-    let mut s = Scene::default();
-    let width = seq
-        .participants
-        .iter()
-        .map(|p| text_width(&p.name, 15.) + 40.)
-        .fold(180., f32::max);
-    let step = width + 100.;
-    let xs: HashMap<_, _> = seq
-        .participants
-        .iter()
-        .enumerate()
-        .map(|(i, p)| (p.id, 80. + i as f32 * step + width / 2.))
-        .collect();
-    let mut y = 180.;
-    for m in &seq.messages {
-        let lines = wrap(&m.text, 32);
-        y += 48. + lines.len().saturating_sub(1) as f32 * 22.;
-        s.event_y.insert(m.id, y);
-        if m.source == m.target {
-            y += 38.;
-        }
-    }
-    let bottom = y + 100.;
-    for f in &seq.fragments {
-        if let (Some(&sy), Some(&ey)) = (s.event_y.get(&f.start), s.event_y.get(&f.end)) {
-            let r = Layout::new(
-                30.,
-                sy - 43.,
-                (seq.participants.len().max(1) as f32) * step + 80.,
-                ey - sy + 90.,
-            );
-            s.rect(f.id, r, false);
-            s.boxes.insert(f.id, r);
+    let layout = crate::sequence_layout::layout(seq);
+    let mut s = Scene {
+        event_y: layout.events.clone(),
+        ..Default::default()
+    };
+    for f in &layout.fragments {
+        s.rect(f.id, f.rect, false);
+        s.boxes.insert(f.id, f.rect);
+        for (i, line) in f.title.iter().enumerate() {
             s.text(
                 f.id,
-                38.,
-                sy - 40.,
-                format!("{:?} [{}]", f.kind, f.condition),
+                f.rect.pos.x + 10.,
+                f.rect.pos.y + 6. + i as f32 * 23.,
+                line,
                 14.,
             );
-            if f.kind == FragmentKind::Alt {
-                let split = f
-                    .split
-                    .and_then(|id| s.event_y.get(&id).copied())
-                    .unwrap_or((sy + ey) / 2. + 22.);
-                s.line(
-                    f.id,
-                    vec![
-                        Point::new(30., split),
-                        Point::new(r.pos.x + r.size.x, split),
-                    ],
-                    true,
-                );
-                s.text(
-                    f.id,
-                    40.,
-                    split + 2.,
-                    format!("[{}]", f.else_condition),
-                    12.,
-                );
+        }
+        if let Some((y, lines)) = &f.split {
+            s.line(
+                f.id,
+                vec![
+                    Point::new(f.rect.pos.x, *y),
+                    Point::new(f.rect.pos.x + f.rect.size.x, *y),
+                ],
+                true,
+            );
+            for (i, line) in lines.iter().enumerate() {
+                s.text(f.id, f.rect.pos.x + 12., y + 5. + i as f32 * 22., line, 13.);
             }
         }
     }
     for p in &seq.participants {
-        let x = xs[&p.id];
-        let r = Layout::new(x - width / 2., 20., width, if p.actor { 125. } else { 65. });
+        let r = layout.participants[&p.id];
         s.boxes.insert(p.id, r);
         if p.actor {
             actor(&mut s, p.id, r, &p.name);
         } else {
             s.rect(p.id, r, true);
-            s.text(p.id, x - text_width(&p.name, 15.) / 2., 40., &p.name, 15.);
+            let lines = crate::text_layout::wrap(&p.name, 15., r.size.x - 20.);
+            for (i, line) in lines.iter().enumerate() {
+                s.text(
+                    p.id,
+                    r.center().x - text_width(line, 15.) / 2.,
+                    r.pos.y + 12. + i as f32 * 23.,
+                    line,
+                    15.,
+                );
+            }
         }
-        s.line(p.id, vec![Point::new(x, 145.), Point::new(x, bottom)], true);
-    }
-    for a in &seq.activations {
-        if let (Some(&x), Some(&sy), Some(&ey)) = (
-            xs.get(&a.participant),
-            s.event_y.get(&a.start),
-            s.event_y.get(&a.end),
-        ) {
-            let r = Layout::new(x - 7., sy - 7., 14., (ey - sy + 30.).max(30.));
-            s.rect(a.id, r, true);
-            s.boxes.insert(a.id, r);
-        }
-    }
-    for m in &seq.messages {
-        let (Some(&sx), Some(&tx), Some(&y)) =
-            (xs.get(&m.source), xs.get(&m.target), s.event_y.get(&m.id))
-        else {
-            continue;
-        };
-        let pts = if m.source == m.target {
+        let (start, end) = layout.lifelines[&p.id];
+        s.line(
+            p.id,
             vec![
-                Point::new(sx, y),
-                Point::new(sx + 65., y),
-                Point::new(sx + 65., y + 30.),
-                Point::new(tx, y + 30.),
-            ]
-        } else {
-            vec![Point::new(sx, y), Point::new(tx, y)]
-        };
-        s.line(m.id, pts.clone(), m.kind == MessageKind::Return);
+                Point::new(r.center().x, start),
+                Point::new(r.center().x, end),
+            ],
+            true,
+        );
+    }
+    let mut bars: Vec<_> = layout.activations.iter().collect();
+    bars.sort_by(|a, b| a.1.pos.x.total_cmp(&b.1.pos.x));
+    for (&id, &rect) in bars {
+        s.rect(id, rect, true);
+        s.boxes.insert(id, rect);
+    }
+    for m in &layout.messages {
+        s.line(
+            m.id,
+            m.points.clone(),
+            matches!(m.kind, MessageKind::Return | MessageKind::Create),
+        );
         arrow(
             &mut s,
             m.id,
-            *pts.last().unwrap(),
-            pts[pts.len() - 2],
+            *m.points.last().unwrap(),
+            m.points[m.points.len() - 2],
             if m.kind == MessageKind::Sync { 2 } else { 0 },
         );
-        let lines = wrap(&m.text, 32);
-        for (i, line) in lines.iter().enumerate() {
-            s.text(
-                m.id,
-                sx.min(tx) + 12.,
-                y - 25. - (lines.len() - 1 - i) as f32 * 22.,
-                line,
-                14.,
+        for (pos, line) in &m.labels {
+            s.text(m.id, pos.x, pos.y, line, 14.);
+        }
+    }
+    for (&id, &point) in &layout.destroyed {
+        for sign in [-1., 1.] {
+            s.line(
+                id,
+                vec![
+                    Point::new(point.x - 10., point.y - 10. * sign),
+                    Point::new(point.x + 10., point.y + 10. * sign),
+                ],
+                false,
             );
         }
     }
@@ -821,21 +773,5 @@ pub fn export_png(
     path: &Path,
     options: &ExportOptions,
 ) -> Result<(u32, u32), String> {
-    let (svg, w, h) = svg(scene, options)?;
-    let mut opt = resvg::usvg::Options::default();
-    let mut db = resvg::usvg::fontdb::Database::new();
-    db.load_font_data(FONT.to_vec());
-    opt.fontdb = Arc::new(db);
-    let tree =
-        resvg::usvg::Tree::from_str(&svg, &opt).map_err(|e| format!("SVG 렌더링 실패: {e}"))?;
-    let mut pixmap =
-        resvg::tiny_skia::Pixmap::new(w, h).ok_or("이미지 메모리를 확보할 수 없습니다")?;
-    resvg::render(
-        &tree,
-        resvg::tiny_skia::Transform::identity(),
-        &mut pixmap.as_mut(),
-    );
-    let bytes = pixmap.encode_png().map_err(|e| e.to_string())?;
-    crate::storage::atomic_write(path, &bytes)?;
-    Ok((w, h))
+    crate::export::png(scene, path, options)
 }

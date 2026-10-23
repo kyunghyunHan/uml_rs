@@ -1,0 +1,361 @@
+{
+  "format_version": 1,
+  "id": "929c6c60-71f4-4278-9b5c-2051fd8fd1cd",
+  "name": "정렬 프로그램",
+  "diagrams": [
+    {
+      "id": "a04a45b6-0539-4714-9461-1561ed01d67b",
+      "name": "정렬 기능",
+      "kind": "UseCase",
+      "nodes": [
+        {
+          "id": "d3a1f5c6-9554-43f9-9aee-c3e6171ff8be",
+          "kind": "Boundary",
+          "name": "정렬 프로그램",
+          "attributes": [],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 230.0,
+              "y": 20.0
+            },
+            "size": {
+              "x": 580.0,
+              "y": 390.0
+            }
+          }
+        },
+        {
+          "id": "f788a304-6a00-499f-bbec-5579406b4535",
+          "kind": "Actor",
+          "name": "사용자",
+          "attributes": [],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 40.0,
+              "y": 140.0
+            },
+            "size": {
+              "x": 90.0,
+              "y": 130.0
+            }
+          }
+        },
+        {
+          "id": "2ea8009d-f5fa-4e35-bfe5-86427230f8cd",
+          "kind": "UseCase",
+          "name": "정렬 실행",
+          "attributes": [],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 300.0,
+              "y": 100.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 80.0
+            }
+          }
+        },
+        {
+          "id": "e961035c-7993-4bd6-9499-ea3abb925b72",
+          "kind": "UseCase",
+          "name": "정렬 정책 선택",
+          "attributes": [],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 540.0,
+              "y": 240.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 80.0
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "id": "6febf804-0336-42b3-a799-f819d20363d7",
+          "source": "f788a304-6a00-499f-bbec-5579406b4535",
+          "target": "2ea8009d-f5fa-4e35-bfe5-86427230f8cd",
+          "kind": "Association",
+          "name": "",
+          "source_role": "",
+          "target_role": "",
+          "source_multiplicity": "",
+          "target_multiplicity": "",
+          "navigable": false,
+          "bend": null
+        },
+        {
+          "id": "a4f6ff5b-0790-4616-8bd4-716c4486c52e",
+          "source": "2ea8009d-f5fa-4e35-bfe5-86427230f8cd",
+          "target": "e961035c-7993-4bd6-9499-ea3abb925b72",
+          "kind": "Include",
+          "name": "",
+          "source_role": "",
+          "target_role": "",
+          "source_multiplicity": "",
+          "target_multiplicity": "",
+          "navigable": false,
+          "bend": null
+        }
+      ],
+      "sequence": {
+        "participants": [],
+        "messages": [],
+        "activations": [],
+        "fragments": []
+      },
+      "view": {
+        "pan": {
+          "x": 40.0,
+          "y": 40.0
+        },
+        "zoom": 1.0
+      }
+    },
+    {
+      "id": "36552935-a740-45e4-bb3f-9893037b5027",
+      "name": "정렬 프로그램 구조",
+      "kind": "Class",
+      "nodes": [
+        {
+          "id": "92894302-3088-4651-8491-cc8fb6c57fc1",
+          "kind": "Class",
+          "name": "SortService",
+          "attributes": [
+            {
+              "id": "878fee24-da17-4e9f-af73-1521e39080a2",
+              "visibility": "-",
+              "name": "policy",
+              "type_name": "SortPolicy",
+              "value": "",
+              "parameters": "",
+              "is_static": false,
+              "is_abstract": false
+            }
+          ],
+          "methods": [
+            {
+              "id": "4da84aee-a7b9-40e2-ab01-02d70634de6e",
+              "visibility": "+",
+              "name": "sort",
+              "type_name": "void",
+              "value": "",
+              "parameters": "values: List<int>",
+              "is_static": false,
+              "is_abstract": false
+            }
+          ],
+          "layout": {
+            "pos": {
+              "x": 40.0,
+              "y": 80.0
+            },
+            "size": {
+              "x": 214.576,
+              "y": 96.0
+            }
+          }
+        },
+        {
+          "id": "70a445d1-14e4-4a4f-bcf5-62dfc0c5c4c7",
+          "kind": "Interface",
+          "name": "SortPolicy",
+          "attributes": [],
+          "methods": [
+            {
+              "id": "4207802b-a9f3-44c3-a30d-063bc7f6d198",
+              "visibility": "+",
+              "name": "sort",
+              "type_name": "void",
+              "value": "",
+              "parameters": "values: List<int>",
+              "is_static": false,
+              "is_abstract": true
+            }
+          ],
+          "layout": {
+            "pos": {
+              "x": 560.0,
+              "y": 80.0
+            },
+            "size": {
+              "x": 214.576,
+              "y": 114.0
+            }
+          }
+        },
+        {
+          "id": "4e0787fd-13c7-4d85-a709-f5d39b002b6b",
+          "kind": "Class",
+          "name": "BubbleSort",
+          "attributes": [],
+          "methods": [
+            {
+              "id": "c5c83e6f-d84e-420f-98f6-b10297df3cf5",
+              "visibility": "+",
+              "name": "sort",
+              "type_name": "void",
+              "value": "",
+              "parameters": "values: List<int>",
+              "is_static": false,
+              "is_abstract": false
+            }
+          ],
+          "layout": {
+            "pos": {
+              "x": 560.0,
+              "y": 370.0
+            },
+            "size": {
+              "x": 214.576,
+              "y": 96.0
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "id": "6a587f75-806c-4408-8798-1528558edc5e",
+          "source": "92894302-3088-4651-8491-cc8fb6c57fc1",
+          "target": "70a445d1-14e4-4a4f-bcf5-62dfc0c5c4c7",
+          "kind": "Association",
+          "name": "",
+          "source_role": "",
+          "target_role": "policy",
+          "source_multiplicity": "",
+          "target_multiplicity": "1",
+          "navigable": true,
+          "bend": null
+        },
+        {
+          "id": "e0a5640f-f739-4793-a1ce-5ea7cfafbdb0",
+          "source": "4e0787fd-13c7-4d85-a709-f5d39b002b6b",
+          "target": "70a445d1-14e4-4a4f-bcf5-62dfc0c5c4c7",
+          "kind": "Realization",
+          "name": "",
+          "source_role": "",
+          "target_role": "",
+          "source_multiplicity": "",
+          "target_multiplicity": "",
+          "navigable": false,
+          "bend": null
+        }
+      ],
+      "sequence": {
+        "participants": [],
+        "messages": [],
+        "activations": [],
+        "fragments": []
+      },
+      "view": {
+        "pan": {
+          "x": 40.0,
+          "y": 40.0
+        },
+        "zoom": 1.0
+      }
+    },
+    {
+      "id": "5a694ef2-2c4f-4609-af02-4ad6d489a8d2",
+      "name": "정렬 실행",
+      "kind": "Sequence",
+      "nodes": [],
+      "relations": [],
+      "sequence": {
+        "participants": [
+          {
+            "id": "e2409032-7b6f-4e74-8422-0b55bbf675d7",
+            "name": "사용자",
+            "actor": true
+          },
+          {
+            "id": "caa7c05a-ca47-484d-9f11-bd177c35f3f0",
+            "name": "service: SortService",
+            "actor": false
+          },
+          {
+            "id": "cb1bf346-5a4b-45b2-823f-f32c7cb43d68",
+            "name": "policy: BubbleSort",
+            "actor": false
+          }
+        ],
+        "messages": [
+          {
+            "id": "373069c2-4811-4e5a-8f07-c9f126765592",
+            "source": "e2409032-7b6f-4e74-8422-0b55bbf675d7",
+            "target": "caa7c05a-ca47-484d-9f11-bd177c35f3f0",
+            "kind": "Sync",
+            "text": "sort(values)"
+          },
+          {
+            "id": "c03af280-bc95-4003-b76a-cc0069ac0ea9",
+            "source": "caa7c05a-ca47-484d-9f11-bd177c35f3f0",
+            "target": "cb1bf346-5a4b-45b2-823f-f32c7cb43d68",
+            "kind": "Sync",
+            "text": "sort(values)"
+          },
+          {
+            "id": "d7670edd-1f86-4d52-b481-e068967801b3",
+            "source": "cb1bf346-5a4b-45b2-823f-f32c7cb43d68",
+            "target": "cb1bf346-5a4b-45b2-823f-f32c7cb43d68",
+            "kind": "Sync",
+            "text": "인접 원소 비교 및 교환"
+          },
+          {
+            "id": "86cb4d1d-e56e-4004-be17-5be98f12e698",
+            "source": "cb1bf346-5a4b-45b2-823f-f32c7cb43d68",
+            "target": "caa7c05a-ca47-484d-9f11-bd177c35f3f0",
+            "kind": "Return",
+            "text": "정렬 완료"
+          },
+          {
+            "id": "346a77cf-902d-493e-8310-484c6de8f3c0",
+            "source": "caa7c05a-ca47-484d-9f11-bd177c35f3f0",
+            "target": "e2409032-7b6f-4e74-8422-0b55bbf675d7",
+            "kind": "Return",
+            "text": "정렬된 결과"
+          }
+        ],
+        "activations": [
+          {
+            "id": "19e93087-1554-4448-99c9-4265a4ff5ee0",
+            "participant": "caa7c05a-ca47-484d-9f11-bd177c35f3f0",
+            "start": "373069c2-4811-4e5a-8f07-c9f126765592",
+            "end": "346a77cf-902d-493e-8310-484c6de8f3c0"
+          },
+          {
+            "id": "d7e8e36e-858e-4719-8f37-e2fbf4a237f6",
+            "participant": "cb1bf346-5a4b-45b2-823f-f32c7cb43d68",
+            "start": "c03af280-bc95-4003-b76a-cc0069ac0ea9",
+            "end": "86cb4d1d-e56e-4004-be17-5be98f12e698"
+          }
+        ],
+        "fragments": [
+          {
+            "id": "28d83ed8-b952-4be8-aa85-7ed987e86dd3",
+            "kind": "Loop",
+            "condition": "교환이 발생하는 동안",
+            "else_condition": "",
+            "start": "d7670edd-1f86-4d52-b481-e068967801b3",
+            "end": "d7670edd-1f86-4d52-b481-e068967801b3",
+            "split": null
+          }
+        ]
+      },
+      "view": {
+        "pan": {
+          "x": 40.0,
+          "y": 40.0
+        },
+        "zoom": 1.0
+      }
+    }
+  ]
+}

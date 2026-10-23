@@ -7,6 +7,13 @@ pub enum Tool {
     Add(NodeKind),
     Connect(RelationKind),
 }
+#[derive(Clone, Copy)]
+pub enum ContextAction {
+    Delete,
+    Copy,
+    Paste,
+    Duplicate,
+}
 #[derive(Default)]
 pub struct CanvasState {
     pub selection: HashSet<Id>,
@@ -15,6 +22,10 @@ pub struct CanvasState {
     pub connection: Option<Id>,
     drag: Option<Drag>,
     pub finished_drag: bool,
+    pub edit_name: Option<Id>,
+    pub notice: Option<String>,
+    pub context_action: Option<ContextAction>,
+    pub guides: bool,
 }
 struct Drag {
     start: Point,
@@ -24,6 +35,7 @@ struct Drag {
     resize: Option<Id>,
     additive: bool,
     initial_selection: HashSet<Id>,
+    route: Option<(Id, usize, Vec<Point>)>,
 }
 pub fn screen_to_world(screen: egui::Pos2, origin: egui::Pos2, view: View) -> Point {
     Point::new(
@@ -49,6 +61,7 @@ impl CanvasState {
     pub fn new() -> Self {
         Self {
             grid: true,
+            guides: true,
             ..Default::default()
         }
     }
@@ -58,6 +71,9 @@ impl CanvasState {
         self.drag = None;
     }
     pub fn ui(&mut self, ui: &mut egui::Ui, d: &mut Diagram, tool: &mut Tool) -> bool {
+        for n in &mut d.nodes {
+            n.reflow();
+        }
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
         let rect = response.rect;
         let origin = rect.min;
@@ -109,13 +125,62 @@ impl CanvasState {
             }
         }
         let sc = scene::build(d);
+        let space = ui.input(|i| i.key_down(Key::Space)) && !ui.ctx().wants_keyboard_input();
+        if response.dragged_by(PointerButton::Primary) && space {
+            let delta = ui.input(|i| i.pointer.delta());
+            d.view.pan.x += delta.x;
+            d.view.pan.y += delta.y;
+            self.drag = None;
+        }
+        if response.double_clicked()
+            && let Some(pos) = pointer
+            && let Some(id) = sc.hit(screen_to_world(pos, origin, d.view), 7. / d.view.zoom)
+        {
+            self.edit_name = Some(id);
+            self.selection.clear();
+            self.selection.insert(id);
+        }
+        let route_handles: Vec<_> = d
+            .relations
+            .iter()
+            .filter(|r| self.selection.contains(&r.id))
+            .flat_map(|r| {
+                let pts = crate::routing::path(d, r);
+                let inner = if !r.waypoints.is_empty() {
+                    r.waypoints.clone()
+                } else if pts.len() > 2 {
+                    pts[1..pts.len() - 1].to_vec()
+                } else if pts.len() == 2 {
+                    vec![Point::new(
+                        (pts[0].x + pts[1].x) / 2.,
+                        (pts[0].y + pts[1].y) / 2.,
+                    )]
+                } else {
+                    vec![]
+                };
+                inner
+                    .iter()
+                    .enumerate()
+                    .map(|(i, p)| (r.id, i, *p, inner.clone()))
+                    .collect::<Vec<_>>()
+            })
+            .collect();
         let primary_pressed = ui.input(|i| i.pointer.button_pressed(PointerButton::Primary));
         if response.hovered()
+            && !space
             && primary_pressed
             && let Some(pos) = pointer
         {
             let w = screen_to_world(pos, origin, d.view);
-            let hit = sc.hit(w, 7. / d.view.zoom);
+            let candidates = sc.hits(w, 7. / d.view.zoom);
+            let hit = if ui.input(|i| i.modifiers.alt) {
+                let current = candidates.iter().position(|id| self.selection.contains(id));
+                candidates
+                    .get(current.map_or(0, |i| (i + 1) % candidates.len().max(1)))
+                    .copied()
+            } else {
+                candidates.first().copied()
+            };
             let additive = ui.input(|i| i.modifiers.shift || i.modifiers.command);
             match *tool {
                 Tool::Add(kind) => {
@@ -126,6 +191,21 @@ impl CanvasState {
                     }
                     self.selection.clear();
                     self.selection.insert(n.id);
+                    if !matches!(kind, NodeKind::Boundary | NodeKind::Package) {
+                        n.boundary = d
+                            .nodes
+                            .iter()
+                            .filter(|b| {
+                                matches!(b.kind, NodeKind::Boundary | NodeKind::Package)
+                                    && b.layout.contains(n.layout.center())
+                            })
+                            .min_by(|a, b| {
+                                (a.layout.size.x * a.layout.size.y)
+                                    .total_cmp(&(b.layout.size.x * b.layout.size.y))
+                            })
+                            .map(|b| b.id);
+                    }
+                    n.reflow();
                     d.nodes.push(n);
                     changed = true;
                     *tool = Tool::Select;
@@ -133,31 +213,19 @@ impl CanvasState {
                 Tool::Connect(kind) => {
                     if let Some(node) = hit.filter(|i| d.nodes.iter().any(|n| n.id == *i)) {
                         if let Some(source) = self.connection.take() {
-                            let valid = if d.kind == DiagramKind::UseCase {
-                                let a = d.nodes.iter().find(|n| n.id == source).unwrap().kind;
-                                let b = d.nodes.iter().find(|n| n.id == node).unwrap().kind;
-                                match kind {
-                                    RelationKind::Include | RelationKind::Extend => {
-                                        a == NodeKind::UseCase && b == NodeKind::UseCase
-                                    }
-                                    RelationKind::Generalization => {
-                                        a == b && matches!(a, NodeKind::Actor | NodeKind::UseCase)
-                                    }
-                                    _ => matches!(
-                                        (a, b),
-                                        (NodeKind::Actor, NodeKind::UseCase)
-                                            | (NodeKind::UseCase, NodeKind::Actor)
-                                    ),
+                            let r = Relation::new(source, node, kind);
+                            let rid = r.id;
+                            match d.add_relation(r) {
+                                Ok(()) => {
+                                    self.selection.clear();
+                                    self.selection.insert(rid);
+                                    changed = true;
+                                    self.notice = None;
                                 }
-                            } else {
-                                true
-                            };
-                            if valid {
-                                let r = Relation::new(source, node, kind);
-                                self.selection.clear();
-                                self.selection.insert(r.id);
-                                d.relations.push(r);
-                                changed = true;
+                                Err(e) => {
+                                    self.notice = Some(e);
+                                    self.connection = Some(source);
+                                }
                             }
                         } else {
                             self.connection = Some(node);
@@ -165,6 +233,12 @@ impl CanvasState {
                     }
                 }
                 Tool::Select => {
+                    let route = route_handles
+                        .iter()
+                        .find(|(_, _, point, _)| {
+                            (point.x - w.x).hypot(point.y - w.y) < 10. / d.view.zoom
+                        })
+                        .map(|(id, i, _, points)| (*id, *i, points.clone()));
                     let resize = if self.selection.len() == 1 {
                         self.selection.iter().next().and_then(|id| {
                             sc.boxes
@@ -179,7 +253,7 @@ impl CanvasState {
                     } else {
                         None
                     };
-                    if resize.is_none() {
+                    if resize.is_none() && route.is_none() {
                         if let Some(id) = hit {
                             if additive {
                                 if !self.selection.insert(id) {
@@ -198,7 +272,8 @@ impl CanvasState {
                         start: w,
                         last: w,
                         original,
-                        marquee: hit.is_none() && resize.is_none(),
+                        marquee: hit.is_none() && resize.is_none() && route.is_none(),
+                        route,
                         resize,
                         additive,
                         initial_selection: self.selection.clone(),
@@ -206,7 +281,8 @@ impl CanvasState {
                 }
             }
         }
-        if response.dragged_by(PointerButton::Primary)
+        if (response.dragged_by(PointerButton::Primary)
+            || response.drag_stopped_by(PointerButton::Primary))
             && let (Some(pos), Some(drag)) = (pointer, self.drag.as_mut())
         {
             let w = screen_to_world(pos, origin, d.view);
@@ -237,11 +313,19 @@ impl CanvasState {
                     Stroke::new(1_f32, Color32::from_rgb(63, 111, 235)),
                     egui::StrokeKind::Inside,
                 );
+            } else if let Some((id, index, points)) = &drag.route {
+                if let Some(r) = d.relations.iter_mut().find(|r| r.id == *id) {
+                    r.waypoints = points.clone();
+                    r.waypoints[*index] = w;
+                    r.bend = None;
+                    changed = true;
+                }
             } else if let Some(id) = drag.resize {
                 if let (Some(n), Some(old)) = (
                     d.nodes.iter_mut().find(|n| n.id == id),
                     drag.original.get(&id),
                 ) {
+                    n.sizing = SizeMode::Manual;
                     n.layout.size = Point::new(
                         (old.size.x + w.x - drag.start.x).max(50.),
                         (old.size.y + w.y - drag.start.y).max(50.),
@@ -276,7 +360,111 @@ impl CanvasState {
         {
             self.finished_drag = true;
         }
-        scene::paint(&scene::build(d), &painter, origin, d.view.pan, d.view.zoom);
+        let sc = scene::build(d);
+        scene::paint(&sc, &painter, origin, d.view.pan, d.view.zoom);
+        for (_, _, point, _) in &route_handles {
+            painter.circle_filled(
+                world_to_screen(*point, origin, d.view),
+                5.,
+                Color32::from_rgb(63, 111, 235),
+            );
+        }
+        if self.guides && response.dragged_by(PointerButton::Primary) {
+            for n in d.nodes.iter().filter(|n| self.selection.contains(&n.id)) {
+                for other in d.nodes.iter().filter(|n| !self.selection.contains(&n.id)) {
+                    for (a, b, vertical) in [
+                        (n.layout.pos.x, other.layout.pos.x, true),
+                        (n.layout.center().x, other.layout.center().x, true),
+                        (n.layout.pos.y, other.layout.pos.y, false),
+                        (n.layout.center().y, other.layout.center().y, false),
+                    ] {
+                        if (a - b).abs() < 5. / d.view.zoom {
+                            let pts = if vertical {
+                                [Point::new(b, -100000.), Point::new(b, 100000.)]
+                            } else {
+                                [Point::new(-100000., b), Point::new(100000., b)]
+                            };
+                            painter.line_segment(
+                                [
+                                    world_to_screen(pts[0], origin, d.view),
+                                    world_to_screen(pts[1], origin, d.view),
+                                ],
+                                Stroke::new(1_f32, Color32::from_rgb(63, 111, 235)),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        if let Tool::Connect(kind) = *tool
+            && let (Some(source), Some(pos)) = (self.connection, pointer)
+            && let Some(node) = d.nodes.iter().find(|n| n.id == source)
+        {
+            let w = screen_to_world(pos, origin, d.view);
+            let target = sc
+                .hit(w, 7. / d.view.zoom)
+                .filter(|id| d.nodes.iter().any(|n| n.id == *id));
+            let valid = target
+                .map(|target| crate::validation::relation(d, &Relation::new(source, target, kind)));
+            let color = if valid.as_ref().is_some_and(Result::is_err) {
+                Color32::DARK_RED
+            } else {
+                Color32::from_rgb(63, 111, 235)
+            };
+            let start = crate::routing::anchor(node, w);
+            painter.line_segment(
+                [world_to_screen(start, origin, d.view), pos],
+                Stroke::new(2_f32, color),
+            );
+            if let Some(target) = target
+                && let Some(r) = sc.boxes.get(&target)
+            {
+                let a = world_to_screen(r.pos, origin, d.view);
+                painter.rect_stroke(
+                    Rect::from_min_size(
+                        a,
+                        egui::vec2(r.size.x * d.view.zoom, r.size.y * d.view.zoom),
+                    )
+                    .expand(4.),
+                    0.,
+                    Stroke::new(2_f32, color),
+                    egui::StrokeKind::Outside,
+                );
+            }
+            if let Some(Err(reason)) = valid {
+                response.clone().on_hover_text(reason);
+            }
+        }
+        if sc.items.is_empty() {
+            painter.text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                if d.kind == DiagramKind::Sequence {
+                    "‘시퀀스 추가’에서 참여자를 만든 뒤 메시지를 추가하세요"
+                } else {
+                    "‘요소 추가’에서 도구를 고른 뒤 캔버스를 클릭하세요"
+                },
+                egui::FontId::proportional(15.),
+                Color32::from_gray(105),
+            );
+        }
+        response.context_menu(|ui| {
+            for (label, action) in [
+                ("복사", ContextAction::Copy),
+                ("붙여넣기", ContextAction::Paste),
+                ("복제", ContextAction::Duplicate),
+                ("삭제", ContextAction::Delete),
+            ] {
+                if ui.button(label).clicked() {
+                    self.context_action = Some(action);
+                    ui.close();
+                }
+            }
+            if ui.button("전체 화면 맞춤").clicked() {
+                fit(d, rect.size());
+                ui.close();
+            }
+        });
         for id in &self.selection {
             if let Some(r) = sc.boxes.get(id) {
                 let min = world_to_screen(r.pos, origin, d.view);

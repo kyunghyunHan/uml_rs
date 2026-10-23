@@ -1,0 +1,709 @@
+{
+  "format_version": 2,
+  "id": "c53e0714-ae92-4da9-874d-e1cd2d207adf",
+  "name": "정렬 프로그램 · 개선 검증",
+  "diagrams": [
+    {
+      "id": "b833b6e9-5667-4fbb-92ad-6ce0cd29d7c1",
+      "name": "정렬 기능",
+      "kind": "UseCase",
+      "nodes": [
+        {
+          "id": "c1afe07f-2d70-4fa3-b922-41b160bf1006",
+          "kind": "Boundary",
+          "name": "정렬 프로그램",
+          "attributes": [],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 230.0,
+              "y": 20.0
+            },
+            "size": {
+              "x": 650.0,
+              "y": 460.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "6d7c0351-c102-4f33-84e6-80b00a7bd4be",
+          "kind": "Actor",
+          "name": "사용자",
+          "attributes": [],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 40.0,
+              "y": 140.0
+            },
+            "size": {
+              "x": 90.0,
+              "y": 130.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "dbdd32a8-e208-47d3-9c66-bd8d15409e13",
+          "kind": "UseCase",
+          "name": "선택한 정책으로 입력값 정렬 실행",
+          "attributes": [],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 300.0,
+              "y": 100.0
+            },
+            "size": {
+              "x": 240.0,
+              "y": 100.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "선택한 정책에 따라 입력 목록을 정렬한다",
+            "description": "",
+            "primary_actor": "사용자",
+            "preconditions": "정수 목록과 정렬 정책이 준비되어 있다",
+            "basic_flow": "1. 사용자가 정렬을 요청한다.\n2. 서비스가 정책의 sort 메서드를 호출한다.\n3. 결과를 사용자에게 표시한다.",
+            "alternatives": "빈 입력이면 빈 결과를 반환한다.",
+            "postconditions": "결과 목록이 오름차순이며 원소가 보존된다.",
+            "sequences": [
+              "efd0883c-a977-4b62-9d8a-6d7cb5285eda"
+            ]
+          },
+          "boundary": "c1afe07f-2d70-4fa3-b922-41b160bf1006"
+        },
+        {
+          "id": "c0faa5d4-208a-4401-9480-7c71084c6e96",
+          "kind": "UseCase",
+          "name": "정렬 정책 선택",
+          "attributes": [],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 590.0,
+              "y": 290.0
+            },
+            "size": {
+              "x": 180.0,
+              "y": 80.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": "c1afe07f-2d70-4fa3-b922-41b160bf1006"
+        },
+        {
+          "id": "3019aa6b-6566-4799-ab65-9828de423b75",
+          "kind": "Actor",
+          "name": "고급 설정을 사용하는 관리자",
+          "attributes": [],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 25.0,
+              "y": 400.0
+            },
+            "size": {
+              "x": 145.0,
+              "y": 220.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        }
+      ],
+      "relations": [
+        {
+          "id": "185681d3-f8ea-4db3-a30d-abcd745fe2f8",
+          "source": "6d7c0351-c102-4f33-84e6-80b00a7bd4be",
+          "target": "dbdd32a8-e208-47d3-9c66-bd8d15409e13",
+          "kind": "Association",
+          "name": "",
+          "source_role": "",
+          "target_role": "",
+          "source_multiplicity": "",
+          "target_multiplicity": "",
+          "navigable": false,
+          "bend": null,
+          "waypoints": []
+        },
+        {
+          "id": "c6e23059-ff17-4189-8ad5-5e8406b8f1a8",
+          "source": "dbdd32a8-e208-47d3-9c66-bd8d15409e13",
+          "target": "c0faa5d4-208a-4401-9480-7c71084c6e96",
+          "kind": "Include",
+          "name": "",
+          "source_role": "",
+          "target_role": "",
+          "source_multiplicity": "",
+          "target_multiplicity": "",
+          "navigable": false,
+          "bend": null,
+          "waypoints": []
+        },
+        {
+          "id": "557d2aa5-2339-4ab7-8bea-a955050e6655",
+          "source": "3019aa6b-6566-4799-ab65-9828de423b75",
+          "target": "6d7c0351-c102-4f33-84e6-80b00a7bd4be",
+          "kind": "Generalization",
+          "name": "",
+          "source_role": "",
+          "target_role": "",
+          "source_multiplicity": "",
+          "target_multiplicity": "",
+          "navigable": false,
+          "bend": null,
+          "waypoints": []
+        },
+        {
+          "id": "076dbe63-8369-495f-849a-ed9354b6383e",
+          "source": "3019aa6b-6566-4799-ab65-9828de423b75",
+          "target": "c0faa5d4-208a-4401-9480-7c71084c6e96",
+          "kind": "Association",
+          "name": "",
+          "source_role": "",
+          "target_role": "",
+          "source_multiplicity": "",
+          "target_multiplicity": "",
+          "navigable": false,
+          "bend": null,
+          "waypoints": []
+        }
+      ],
+      "sequence": {
+        "participants": [],
+        "messages": [],
+        "activations": [],
+        "fragments": [],
+        "auto_activate": false
+      },
+      "view": {
+        "pan": {
+          "x": 40.0,
+          "y": 40.0
+        },
+        "zoom": 1.0
+      }
+    },
+    {
+      "id": "d3b8d7c0-a0ef-475e-b9bc-39baa7066382",
+      "name": "정렬 프로그램 구조",
+      "kind": "Class",
+      "nodes": [
+        {
+          "id": "15ccda4f-4b91-4832-8125-2e78073b6721",
+          "kind": "Package",
+          "name": "정렬 핵심",
+          "attributes": [],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 40.0,
+              "y": 20.0
+            },
+            "size": {
+              "x": 1450.0,
+              "y": 690.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": null
+        },
+        {
+          "id": "ce9224fa-306a-43d9-b618-1279894557c6",
+          "kind": "Class",
+          "name": "정렬 요청을 처리하는 SortService",
+          "attributes": [
+            {
+              "id": "04f4791d-9ce3-45dd-8830-f82dea90a7d2",
+              "visibility": "-",
+              "name": "policy",
+              "type_name": "SortPolicy",
+              "value": "",
+              "parameters": "",
+              "is_static": false,
+              "is_abstract": false
+            }
+          ],
+          "methods": [
+            {
+              "id": "2ee26069-abf9-4210-a27f-3d0f57c47be0",
+              "visibility": "+",
+              "name": "sort",
+              "type_name": "void",
+              "value": "",
+              "parameters": "values: List<int>, policy: SortPolicy, options: 정렬실행설정",
+              "is_static": false,
+              "is_abstract": false
+            }
+          ],
+          "layout": {
+            "pos": {
+              "x": 80.0,
+              "y": 80.0
+            },
+            "size": {
+              "x": 476.43002,
+              "y": 94.0
+            }
+          },
+          "sizing": "Auto",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": "15ccda4f-4b91-4832-8125-2e78073b6721"
+        },
+        {
+          "id": "700d1f51-3e1f-4094-afc2-5e392aa0be9f",
+          "kind": "Interface",
+          "name": "SortPolicy",
+          "attributes": [],
+          "methods": [
+            {
+              "id": "e3072103-10c0-4662-a0e2-e2c543e04b5f",
+              "visibility": "+",
+              "name": "sort",
+              "type_name": "void",
+              "value": "",
+              "parameters": "values: List<int>, comparison: 비교정책",
+              "is_static": false,
+              "is_abstract": true
+            }
+          ],
+          "layout": {
+            "pos": {
+              "x": 850.0,
+              "y": 80.0
+            },
+            "size": {
+              "x": 361.0,
+              "y": 112.0
+            }
+          },
+          "sizing": "Auto",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": "15ccda4f-4b91-4832-8125-2e78073b6721"
+        },
+        {
+          "id": "34465e28-dc0e-4411-8f77-fa9c2a663c09",
+          "kind": "Class",
+          "name": "안정적인 버블 정렬 BubbleSort",
+          "attributes": [],
+          "methods": [
+            {
+              "id": "bff1757c-a5bd-479c-bc52-9e02238c84af",
+              "visibility": "+",
+              "name": "sort",
+              "type_name": "void",
+              "value": "",
+              "parameters": "values: List<int>, comparison: 비교정책",
+              "is_static": false,
+              "is_abstract": false
+            }
+          ],
+          "layout": {
+            "pos": {
+              "x": 850.0,
+              "y": 410.0
+            },
+            "size": {
+              "x": 361.0,
+              "y": 94.0
+            }
+          },
+          "sizing": "Auto",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": "15ccda4f-4b91-4832-8125-2e78073b6721"
+        },
+        {
+          "id": "a2e3e9b3-0190-4cd0-8a88-0a2bb4d716a7",
+          "kind": "Class",
+          "name": "SortBuffer",
+          "attributes": [
+            {
+              "id": "40bb9020-7dcd-4cba-8dd6-494339357723",
+              "visibility": "-",
+              "name": "capacity",
+              "type_name": "usize",
+              "value": "1024",
+              "parameters": "",
+              "is_static": false,
+              "is_abstract": false
+            }
+          ],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 80.0,
+              "y": 410.0
+            },
+            "size": {
+              "x": 192.0,
+              "y": 70.0
+            }
+          },
+          "sizing": "Auto",
+          "hide_empty": true,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": "15ccda4f-4b91-4832-8125-2e78073b6721"
+        },
+        {
+          "id": "d3993f54-b74c-41e9-aafb-957b2ee62457",
+          "kind": "Note",
+          "name": "동일한 값의 상대 순서를 유지합니다.\n정렬 정책은 인터페이스로 교체할 수 있습니다.",
+          "attributes": [],
+          "methods": [],
+          "layout": {
+            "pos": {
+              "x": 440.0,
+              "y": 520.0
+            },
+            "size": {
+              "x": 320.0,
+              "y": 135.0
+            }
+          },
+          "sizing": "Manual",
+          "hide_empty": false,
+          "specification": {
+            "goal": "",
+            "description": "",
+            "primary_actor": "",
+            "preconditions": "",
+            "basic_flow": "",
+            "alternatives": "",
+            "postconditions": "",
+            "sequences": []
+          },
+          "boundary": "15ccda4f-4b91-4832-8125-2e78073b6721"
+        }
+      ],
+      "relations": [
+        {
+          "id": "f1451de9-b6c8-4183-bca8-77a1cec68fd3",
+          "source": "ce9224fa-306a-43d9-b618-1279894557c6",
+          "target": "700d1f51-3e1f-4094-afc2-5e392aa0be9f",
+          "kind": "Association",
+          "name": "",
+          "source_role": "",
+          "target_role": "policy",
+          "source_multiplicity": "",
+          "target_multiplicity": "1",
+          "navigable": true,
+          "bend": null,
+          "waypoints": []
+        },
+        {
+          "id": "cbbfe3ca-fd53-4703-a489-2d33ad9d383b",
+          "source": "34465e28-dc0e-4411-8f77-fa9c2a663c09",
+          "target": "700d1f51-3e1f-4094-afc2-5e392aa0be9f",
+          "kind": "Realization",
+          "name": "",
+          "source_role": "",
+          "target_role": "",
+          "source_multiplicity": "",
+          "target_multiplicity": "",
+          "navigable": false,
+          "bend": null,
+          "waypoints": []
+        },
+        {
+          "id": "1bbe2afe-c020-4d36-8558-036c870d4a42",
+          "source": "d3993f54-b74c-41e9-aafb-957b2ee62457",
+          "target": "34465e28-dc0e-4411-8f77-fa9c2a663c09",
+          "kind": "Comment",
+          "name": "",
+          "source_role": "",
+          "target_role": "",
+          "source_multiplicity": "",
+          "target_multiplicity": "",
+          "navigable": false,
+          "bend": null,
+          "waypoints": []
+        }
+      ],
+      "sequence": {
+        "participants": [],
+        "messages": [],
+        "activations": [],
+        "fragments": [],
+        "auto_activate": false
+      },
+      "view": {
+        "pan": {
+          "x": 40.0,
+          "y": 40.0
+        },
+        "zoom": 1.0
+      }
+    },
+    {
+      "id": "efd0883c-a977-4b62-9d8a-6d7cb5285eda",
+      "name": "정렬 실행 · 중첩과 생성/소멸",
+      "kind": "Sequence",
+      "nodes": [],
+      "relations": [],
+      "sequence": {
+        "participants": [
+          {
+            "id": "5a0f8349-e85e-4c68-8790-54de4d7553b3",
+            "name": "사용자",
+            "actor": true,
+            "type_ref": null
+          },
+          {
+            "id": "7ec9b593-5261-446d-86a6-a3b7d8baa52f",
+            "name": "정렬 요청을 처리하는 SortService",
+            "actor": false,
+            "type_ref": "ce9224fa-306a-43d9-b618-1279894557c6"
+          },
+          {
+            "id": "10abf852-1d6e-4a42-98f1-1858634e5aa2",
+            "name": "안정적인 버블 정렬 BubbleSort",
+            "actor": false,
+            "type_ref": "34465e28-dc0e-4411-8f77-fa9c2a663c09"
+          },
+          {
+            "id": "5470869c-5c2f-4e15-884e-d578cd4f0cf4",
+            "name": "SortBuffer",
+            "actor": false,
+            "type_ref": "a2e3e9b3-0190-4cd0-8a88-0a2bb4d716a7"
+          }
+        ],
+        "messages": [
+          {
+            "id": "d4ccfd8c-6a13-43d1-a323-58243db3d763",
+            "source": "5a0f8349-e85e-4c68-8790-54de4d7553b3",
+            "target": "7ec9b593-5261-446d-86a6-a3b7d8baa52f",
+            "kind": "Sync",
+            "text": "sort(values: List<int>, policy: SortPolicy, options: 정렬실행설정): void",
+            "method_ref": "2ee26069-abf9-4210-a27f-3d0f57c47be0"
+          },
+          {
+            "id": "86d0ef7e-488f-41ae-b6ba-96afcd52c4df",
+            "source": "7ec9b593-5261-446d-86a6-a3b7d8baa52f",
+            "target": "5470869c-5c2f-4e15-884e-d578cd4f0cf4",
+            "kind": "Create",
+            "text": "작업 버퍼 생성",
+            "method_ref": null
+          },
+          {
+            "id": "4dd04b1c-ae67-4fdf-82f7-009ddacfd0bf",
+            "source": "7ec9b593-5261-446d-86a6-a3b7d8baa52f",
+            "target": "10abf852-1d6e-4a42-98f1-1858634e5aa2",
+            "kind": "Sync",
+            "text": "sort(values: List<int>, comparison: 비교정책): void",
+            "method_ref": "bff1757c-a5bd-479c-bc52-9e02238c84af"
+          },
+          {
+            "id": "abd4a196-8ad1-4f67-b518-6fafe5060fd4",
+            "source": "10abf852-1d6e-4a42-98f1-1858634e5aa2",
+            "target": "10abf852-1d6e-4a42-98f1-1858634e5aa2",
+            "kind": "Sync",
+            "text": "비교할 인접 원소를 선택하고 현재 정렬 상태와 경계 조건을 검사합니다",
+            "method_ref": null
+          },
+          {
+            "id": "3ae0bc70-c570-42a7-9ec1-a114add66876",
+            "source": "10abf852-1d6e-4a42-98f1-1858634e5aa2",
+            "target": "10abf852-1d6e-4a42-98f1-1858634e5aa2",
+            "kind": "Sync",
+            "text": "왼쪽 값이 더 크면 두 원소의 위치를 교환합니다",
+            "method_ref": null
+          },
+          {
+            "id": "2abf7575-f5b5-4cb6-b003-c3c447127f73",
+            "source": "10abf852-1d6e-4a42-98f1-1858634e5aa2",
+            "target": "10abf852-1d6e-4a42-98f1-1858634e5aa2",
+            "kind": "Return",
+            "text": "교환 결과와 다음 비교 위치를 반환",
+            "method_ref": null
+          },
+          {
+            "id": "7f8e2d51-29a2-4a63-b93a-ea6fcc589c96",
+            "source": "10abf852-1d6e-4a42-98f1-1858634e5aa2",
+            "target": "7ec9b593-5261-446d-86a6-a3b7d8baa52f",
+            "kind": "Return",
+            "text": "정렬된 결과: [1, 2, 3, 5, 8, 13]",
+            "method_ref": null
+          },
+          {
+            "id": "c54900d7-d80d-4066-bc86-6fe1a7d5467e",
+            "source": "7ec9b593-5261-446d-86a6-a3b7d8baa52f",
+            "target": "5470869c-5c2f-4e15-884e-d578cd4f0cf4",
+            "kind": "Destroy",
+            "text": "작업 버퍼 해제",
+            "method_ref": null
+          },
+          {
+            "id": "9a79326a-3946-442c-8af4-435568a96a55",
+            "source": "7ec9b593-5261-446d-86a6-a3b7d8baa52f",
+            "target": "5a0f8349-e85e-4c68-8790-54de4d7553b3",
+            "kind": "Return",
+            "text": "정렬 완료 · 결과를 표시합니다",
+            "method_ref": null
+          }
+        ],
+        "activations": [
+          {
+            "id": "6adf9032-30db-4b23-9f95-0502f71793b8",
+            "participant": "7ec9b593-5261-446d-86a6-a3b7d8baa52f",
+            "start": "d4ccfd8c-6a13-43d1-a323-58243db3d763",
+            "end": "9a79326a-3946-442c-8af4-435568a96a55",
+            "automatic": false
+          },
+          {
+            "id": "7af0946a-e441-4172-a315-73545d0e98b8",
+            "participant": "10abf852-1d6e-4a42-98f1-1858634e5aa2",
+            "start": "4dd04b1c-ae67-4fdf-82f7-009ddacfd0bf",
+            "end": "7f8e2d51-29a2-4a63-b93a-ea6fcc589c96",
+            "automatic": false
+          },
+          {
+            "id": "d54b68bf-77a5-40d5-a4b5-b2c8c4a17e00",
+            "participant": "10abf852-1d6e-4a42-98f1-1858634e5aa2",
+            "start": "abd4a196-8ad1-4f67-b518-6fafe5060fd4",
+            "end": "2abf7575-f5b5-4cb6-b003-c3c447127f73",
+            "automatic": false
+          },
+          {
+            "id": "8408e1ca-3107-45e2-b348-f3f4ecc39c9b",
+            "participant": "10abf852-1d6e-4a42-98f1-1858634e5aa2",
+            "start": "3ae0bc70-c570-42a7-9ec1-a114add66876",
+            "end": "2abf7575-f5b5-4cb6-b003-c3c447127f73",
+            "automatic": false
+          }
+        ],
+        "fragments": [
+          {
+            "id": "6690dd84-97c5-4cbb-8b07-1b3a34d4f9d7",
+            "kind": "Alt",
+            "condition": "입력값이 있고 선택한 정책으로 정렬할 수 있는 경우",
+            "else_condition": "정렬 결과가 준비됨",
+            "start": "4dd04b1c-ae67-4fdf-82f7-009ddacfd0bf",
+            "end": "7f8e2d51-29a2-4a63-b93a-ea6fcc589c96",
+            "split": "7f8e2d51-29a2-4a63-b93a-ea6fcc589c96",
+            "participant_start": "7ec9b593-5261-446d-86a6-a3b7d8baa52f",
+            "participant_end": "10abf852-1d6e-4a42-98f1-1858634e5aa2"
+          },
+          {
+            "id": "c2a89a51-90d7-4464-9597-5b7d055e6c99",
+            "kind": "Loop",
+            "condition": "앞선 반복에서 교환이 발생하는 동안",
+            "else_condition": "",
+            "start": "abd4a196-8ad1-4f67-b518-6fafe5060fd4",
+            "end": "2abf7575-f5b5-4cb6-b003-c3c447127f73",
+            "split": null,
+            "participant_start": "10abf852-1d6e-4a42-98f1-1858634e5aa2",
+            "participant_end": "10abf852-1d6e-4a42-98f1-1858634e5aa2"
+          }
+        ],
+        "auto_activate": false
+      },
+      "view": {
+        "pan": {
+          "x": 40.0,
+          "y": 40.0
+        },
+        "zoom": 1.0
+      }
+    }
+  ]
+}

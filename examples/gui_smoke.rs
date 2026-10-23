@@ -38,6 +38,9 @@ impl eframe::App for Smoke {
         }
         self.app.update(ctx, frame);
         self.frames += 1;
+        if self.frames == 4 {
+            self.app.fit_active();
+        }
         if self.frames == 8 {
             ctx.send_viewport_cmd(egui::ViewportCommand::Screenshot(Default::default()));
         }
@@ -54,15 +57,25 @@ fn main() -> eframe::Result<()> {
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|| "/tmp/uml-studio-gui.png".into());
     let index: usize = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(0);
+    let small = args.iter().any(|a| a == "--small");
+    let review = args.iter().any(|a| a == "--review");
     eframe::run_native(
         "UML Studio · GUI smoke",
         eframe::NativeOptions {
-            viewport: egui::ViewportBuilder::default().with_inner_size([1440., 900.]),
+            viewport: egui::ViewportBuilder::default().with_inner_size(if small {
+                [820., 620.]
+            } else {
+                [1440., 900.]
+            }),
             ..Default::default()
         },
         Box::new(move |cc| {
             let mut app = UmlApp::new(cc);
-            let mut p = example_project();
+            let mut p = if review {
+                uml_studio::demo::review_project()
+            } else {
+                example_project()
+            };
             let len = p.diagrams.len();
             p.diagrams.rotate_left(index % len);
             app.project = Some(p);

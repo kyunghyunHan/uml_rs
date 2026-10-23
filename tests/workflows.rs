@@ -357,7 +357,15 @@ fn canvas_drag_selection_and_resize_work_after_zoom() {
     assert!(state.selection.contains(&nid));
     assert_eq!(d.nodes[0].layout.pos, Point::new(160., 140.));
     assert!(state.finished_drag);
-    let handle = canvas::world_to_screen(Point::new(390., 290.), egui::Pos2::ZERO, d.view);
+    let old_size = d.nodes[0].layout.size;
+    let handle = canvas::world_to_screen(
+        Point::new(
+            d.nodes[0].layout.pos.x + old_size.x,
+            d.nodes[0].layout.pos.y + old_size.y,
+        ),
+        egui::Pos2::ZERO,
+        d.view,
+    );
     run(
         vec![Event::PointerMoved(handle), pressed(handle, true)],
         &mut d,
@@ -366,7 +374,11 @@ fn canvas_drag_selection_and_resize_work_after_zoom() {
     let next = handle + egui::vec2(45., 30.);
     run(vec![Event::PointerMoved(next)], &mut d, &mut state);
     run(vec![pressed(next, false)], &mut d, &mut state);
-    assert_eq!(d.nodes[0].layout.size, Point::new(260., 170.));
+    assert_eq!(
+        d.nodes[0].layout.size,
+        Point::new(old_size.x + 30., old_size.y + 20.)
+    );
+    assert_eq!(d.nodes[0].sizing, SizeMode::Manual);
 }
 
 #[test]
