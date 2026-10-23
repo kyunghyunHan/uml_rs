@@ -11,6 +11,7 @@ struct Canvas {
     tool: Tool,
     diagram: Diagram,
     time: f64,
+    output: Option<egui::FullOutput>,
 }
 impl Canvas {
     fn new(
@@ -33,6 +34,7 @@ impl Canvas {
             tool: Tool::Connect(relation),
             diagram,
             time: 0.,
+            output: None,
         };
         canvas.run(vec![]);
         canvas
@@ -40,7 +42,7 @@ impl Canvas {
     fn run(&mut self, events: Vec<Event>) -> bool {
         self.time += 0.05;
         let mut changed = false;
-        let _ = self.ctx.run(
+        let output = self.ctx.run(
             egui::RawInput {
                 screen_rect: Some(egui::Rect::from_min_size(
                     egui::Pos2::ZERO,
@@ -58,6 +60,7 @@ impl Canvas {
                     });
             },
         );
+        self.output = Some(output);
         changed
     }
     fn point(&self, index: usize) -> egui::Pos2 {
@@ -291,13 +294,20 @@ fn invalid_relation_pairs_report_errors_without_changing_the_diagram() {
         let mut c = Canvas::new(diagram, source, target, relation, 1.);
         let before = c.diagram.clone();
         c.click(c.point(0));
-        assert!(
-            !c.click(c.point(1)),
-            "invalid {relation:?}: {source:?} → {target:?}"
-        );
+        let start_valid =
+            uml_studio::validation::connection_start(&before, before.nodes[0].id, relation).is_ok();
+        if start_valid {
+            assert!(
+                !c.click(c.point(1)),
+                "invalid {relation:?}: {source:?} → {target:?}"
+            );
+        }
         assert_eq!(c.diagram, before);
         assert!(c.state.notice.as_ref().is_some_and(|s| !s.is_empty()));
-        assert_eq!(c.state.connection, Some(before.nodes[0].id));
+        assert_eq!(
+            c.state.connection,
+            start_valid.then_some(before.nodes[0].id)
+        );
     }
 }
 
@@ -393,5 +403,99 @@ fn each_created_relation_can_be_retargeted_undone_saved_and_loaded() {
         let path = dir.path().join("relations.umlproj");
         storage::save(&path, &project).unwrap();
         assert_eq!(storage::load(&path).unwrap(), project);
+    }
+}
+
+fn contains_text(output: &egui::FullOutput, text: &str) -> bool {
+    fn contains(shape: &egui::Shape, text: &str) -> bool {
+        match shape {
+            egui::Shape::Text(t) => t.galley.job.text.contains(text),
+            egui::Shape::Vec(shapes) => shapes.iter().any(|s| contains(s, text)),
+            _ => false,
+        }
+    }
+    output.shapes.iter().any(|s| contains(&s.shape, text))
+}
+
+#[test]
+fn invalid_usecase_start_is_rejected_immediately_with_canvas_guidance() {
+    for kind in [RelationKind::Include, RelationKind::Extend] {
+        let mut c = Canvas::new(
+            DiagramKind::UseCase,
+            NodeKind::Actor,
+            NodeKind::UseCase,
+            kind,
+            1.,
+        );
+        c.run(vec![Event::PointerMoved(c.point(0))]);
+        assert_eq!(
+            c.output.as_ref().unwrap().platform_output.cursor_icon,
+            egui::CursorIcon::NotAllowed
+        );
+        assert!(!c.click(c.point(0)));
+        assert!(c.state.connection.is_none());
+        assert!(contains_text(
+            c.output.as_ref().unwrap(),
+            "시작 대상으로 유스케이스를 선택하세요."
+        ));
+        c.run(vec![Event::PointerMoved(egui::pos2(1100., 700.))]);
+        assert!(contains_text(
+            c.output.as_ref().unwrap(),
+            "시작 대상으로 유스케이스를 선택하세요."
+        ));
+        c.click(c.point(1));
+        assert_eq!(c.state.connection, Some(c.diagram.nodes[1].id));
+        assert!(c.state.notice.is_none());
+    }
+}
+
+#[test]
+fn destination_feedback_is_drawn_on_canvas_and_cleared_after_retry() {
+    for (kind, reason) in [
+        (
+            RelationKind::Include,
+            "include는 유스케이스끼리 연결할 수 있습니다.",
+        ),
+        (
+            RelationKind::Extend,
+            "extend는 유스케이스끼리 연결할 수 있습니다.",
+        ),
+        (
+            RelationKind::Generalization,
+            "일반화는 액터끼리 또는 유스케이스끼리 연결하세요",
+        ),
+    ] {
+        let mut c = Canvas::new(
+            DiagramKind::UseCase,
+            NodeKind::UseCase,
+            NodeKind::Actor,
+            kind,
+            1.,
+        );
+        let valid = Node::new(NodeKind::UseCase, Point::new(800., 120.));
+        c.diagram.nodes.push(valid);
+        c.click(c.point(0));
+        c.run(vec![Event::PointerMoved(c.point(1))]);
+        let output = c.output.as_ref().unwrap();
+        assert_eq!(
+            output.platform_output.cursor_icon,
+            egui::CursorIcon::NotAllowed
+        );
+        assert!(contains_text(output, reason));
+        // Every valid destination is highlighted even while another node is hovered.
+        let green = egui::Color32::from_rgb(35, 146, 105);
+        assert!(
+            output
+                .shapes
+                .iter()
+                .any(|s| matches!(&s.shape, egui::Shape::Rect(r) if r.stroke.color == green))
+        );
+        assert!(!c.click(c.point(1)));
+        c.run(vec![Event::PointerMoved(egui::pos2(1100., 700.))]);
+        assert!(contains_text(c.output.as_ref().unwrap(), reason));
+        assert!(c.click(c.point(2)));
+        assert!(c.state.notice.is_none());
+        c.run(vec![Event::PointerMoved(egui::pos2(1100., 700.))]);
+        assert!(!contains_text(c.output.as_ref().unwrap(), reason));
     }
 }

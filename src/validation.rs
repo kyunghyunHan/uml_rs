@@ -7,6 +7,37 @@ pub struct Diagnostic {
     pub element: Id,
     pub message: String,
 }
+/// Early UX guidance; completed connections still pass through `relation`.
+pub fn connection_start(d: &Diagram, source: Id, kind: RelationKind) -> Result<(), String> {
+    let node = d
+        .nodes
+        .iter()
+        .find(|n| n.id == source)
+        .ok_or("시작 요소가 없습니다. 시작 대상을 다시 선택하세요")?;
+    if d.kind == DiagramKind::UseCase {
+        let allowed = match kind {
+            RelationKind::Include | RelationKind::Extend => node.kind == NodeKind::UseCase,
+            RelationKind::Association | RelationKind::Generalization => {
+                matches!(node.kind, NodeKind::Actor | NodeKind::UseCase)
+            }
+            RelationKind::Comment => true,
+            _ => false,
+        };
+        if !allowed {
+            return Err(match kind {
+                RelationKind::Include | RelationKind::Extend => {
+                    "시작 대상으로 유스케이스를 선택하세요."
+                }
+                RelationKind::Association | RelationKind::Generalization => {
+                    "시작 대상으로 액터 또는 유스케이스를 선택하세요."
+                }
+                _ => "이 관계는 유스케이스 다이어그램에서 사용할 수 없습니다.",
+            }
+            .into());
+        }
+    }
+    Ok(())
+}
 pub fn relation(d: &Diagram, candidate: &Relation) -> Result<(), String> {
     let a = d
         .nodes
@@ -38,7 +69,14 @@ pub fn relation(d: &Diagram, candidate: &Relation) -> Result<(), String> {
             }
             RelationKind::Include | RelationKind::Extend => {
                 if a.kind != NodeKind::UseCase || b.kind != NodeKind::UseCase {
-                    return Err("include/extend는 유스케이스 사이에 연결하세요".into());
+                    return Err(format!(
+                        "{}는 유스케이스끼리 연결할 수 있습니다.",
+                        if k == RelationKind::Include {
+                            "include"
+                        } else {
+                            "extend"
+                        }
+                    ));
                 }
             }
             RelationKind::Generalization => {

@@ -1,5 +1,33 @@
 use crate::{canvas::Tool, model::*};
 use eframe::egui::{self, Align2, Color32, FontId, Sense, Stroke};
+pub fn toolbar_style(ui: &mut egui::Ui) {
+    let spacing = ui.spacing_mut();
+    spacing.interact_size.y = 32.;
+    spacing.button_padding = egui::vec2(10., 6.);
+    spacing.item_spacing = egui::vec2(8., 8.);
+}
+
+pub fn toolbar_frame() -> egui::Frame {
+    egui::Frame::new()
+        .fill(Color32::from_rgb(247, 249, 252))
+        .inner_margin(egui::Margin::symmetric(8, 6))
+        .stroke(Stroke::new(1_f32, Color32::from_rgb(221, 226, 234)))
+}
+
+pub fn relation_label(diagram: DiagramKind, kind: RelationKind) -> String {
+    let targets = match (diagram, kind) {
+        (DiagramKind::UseCase, RelationKind::Association) => "액터 ↔ 유스케이스",
+        (_, RelationKind::Include | RelationKind::Extend) => "유스케이스 → 유스케이스",
+        (DiagramKind::UseCase, RelationKind::Generalization) => "액터끼리 또는 유스케이스끼리",
+        (_, RelationKind::Generalization) => "클래스끼리 또는 인터페이스끼리 · 하위 → 상위",
+        (_, RelationKind::Realization) => "구현 클래스 → 인터페이스",
+        (_, RelationKind::Aggregation | RelationKind::Composition) => "클래스 요소 · 전체 → 부분",
+        (_, RelationKind::Comment) => "노트 ↔ 요소",
+        _ => "클래스·인터페이스·열거형 → 클래스·인터페이스·열거형",
+    };
+    format!("{}: {targets}", kind.label())
+}
+
 pub fn node_tool(ui: &mut egui::Ui, tool: &mut Tool, kind: NodeKind) {
     let text = kind.label();
     let width = ui.fonts_mut(|f| {

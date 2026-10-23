@@ -21,6 +21,7 @@ pub struct CanvasState {
     pub snap: bool,
     pub connection: Option<Id>,
     connection_drag: Option<Id>,
+    connection_kind: Option<RelationKind>,
     drag: Option<Drag>,
     pub finished_drag: bool,
     pub edit_name: Option<Id>,
@@ -89,10 +90,16 @@ impl CanvasState {
         self.selection.clear();
         self.connection = None;
         self.connection_drag = None;
+        self.notice = None;
         self.drag = None;
     }
     fn connect_to(&mut self, d: &mut Diagram, target: Id, kind: RelationKind) -> bool {
         let Some(source) = self.connection.take() else {
+            if let Err(reason) = crate::validation::connection_start(d, target, kind) {
+                self.notice = Some(reason);
+                self.connection_drag = None;
+                return false;
+            }
             self.connection = Some(target);
             self.notice = None;
             return false;
@@ -124,6 +131,16 @@ impl CanvasState {
         self.finished_drag = false;
         painter.rect_filled(rect, 0., Color32::from_rgb(247, 249, 252));
         let pointer = ui.input(|i| i.pointer.hover_pos());
+        let kind = match *tool {
+            Tool::Connect(kind) => Some(kind),
+            _ => None,
+        };
+        if self.connection_kind != kind {
+            self.connection = None;
+            self.connection_drag = None;
+            self.notice = None;
+            self.connection_kind = kind;
+        }
         if ui.is_enabled()
             && !ui.ctx().wants_keyboard_input()
             && ui.input(|i| i.key_pressed(Key::Escape))
@@ -425,6 +442,53 @@ impl CanvasState {
         }
         let sc = scene::build(d);
         scene::paint(&sc, &painter, origin, d.view.pan, d.view.zoom);
+        let mut hover_reason = None;
+        if let Tool::Connect(kind) = *tool {
+            let hovered = pointer
+                .filter(|_| response.contains_pointer())
+                .and_then(|pos| {
+                    connection_target(
+                        d,
+                        &sc,
+                        screen_to_world(pos, origin, d.view),
+                        7. / d.view.zoom,
+                    )
+                });
+            for node in &d.nodes {
+                let result = if let Some(source) = self.connection {
+                    crate::validation::relation(d, &Relation::new(source, node.id, kind))
+                } else {
+                    crate::validation::connection_start(d, node.id, kind)
+                };
+                let is_hovered = hovered == Some(node.id);
+                let color = if result.is_ok() {
+                    Color32::from_rgb(35, 146, 105)
+                } else if is_hovered {
+                    Color32::from_rgb(190, 53, 53)
+                } else {
+                    Color32::from_gray(180)
+                };
+                let min = world_to_screen(node.layout.pos, origin, d.view);
+                painter.rect_stroke(
+                    Rect::from_min_size(
+                        min,
+                        egui::vec2(node.layout.size.x, node.layout.size.y) * d.view.zoom,
+                    )
+                    .expand(4.),
+                    4.,
+                    Stroke::new(if is_hovered { 2.5_f32 } else { 1.5_f32 }, color),
+                    egui::StrokeKind::Outside,
+                );
+                if is_hovered && ui.is_enabled() {
+                    ui.ctx().set_cursor_icon(if result.is_ok() {
+                        egui::CursorIcon::Crosshair
+                    } else {
+                        egui::CursorIcon::NotAllowed
+                    });
+                    hover_reason = result.err();
+                }
+            }
+        }
         for (_, _, point, _) in &route_handles {
             painter.circle_filled(
                 world_to_screen(*point, origin, d.view),
@@ -574,6 +638,42 @@ impl CanvasState {
                 15.,
                 Stroke::new(2_f32, Color32::from_rgb(229, 155, 49)),
             );
+        }
+        // Paint inside the canvas, without an interactive overlay that could eat clicks.
+        if matches!(*tool, Tool::Connect(_)) {
+            let reason = hover_reason.as_ref().or(self.notice.as_ref());
+            let text = reason
+                .map(String::as_str)
+                .unwrap_or(if self.connection.is_some() {
+                    "초록 테두리: 연결 가능한 도착 요소 · 시작 → 도착 클릭 또는 드래그 · Esc 취소"
+                } else {
+                    "초록 테두리: 선택 가능한 시작 요소 · 시작 요소를 선택하세요 · Esc 취소"
+                });
+            let color = if reason.is_some() {
+                Color32::from_rgb(160, 40, 40)
+            } else {
+                Color32::from_rgb(36, 95, 76)
+            };
+            let galley = painter.layout(
+                text.into(),
+                egui::FontId::proportional(13.),
+                color,
+                (rect.width() - 40.).max(1.),
+            );
+            let banner = Rect::from_min_size(
+                rect.min + egui::vec2(8., 8.),
+                galley.size() + egui::vec2(24., 16.),
+            );
+            painter.rect_filled(
+                banner,
+                6.,
+                if reason.is_some() {
+                    Color32::from_rgb(255, 235, 232)
+                } else {
+                    Color32::from_rgb(231, 245, 239)
+                },
+            );
+            painter.galley(banner.min + egui::vec2(12., 8.), galley, color);
         }
         changed
     }
