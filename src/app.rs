@@ -77,12 +77,7 @@ impl UmlApp {
             .or_default()
             .insert(0, "korean".into());
         cc.egui_ctx.set_fonts(fonts);
-        cc.egui_ctx.set_visuals(egui::Visuals::light());
-        let mut style = (*cc.egui_ctx.style()).clone();
-        style.spacing.item_spacing = egui::vec2(8., 8.);
-        style.spacing.button_padding = egui::vec2(10., 6.);
-        style.visuals.selection.bg_fill = Color32::from_rgb(66, 105, 218);
-        cc.egui_ctx.set_style(style);
+        crate::theme::apply(&cc.egui_ctx);
         Self {
             project: None,
             saved: None,
@@ -341,25 +336,22 @@ impl UmlApp {
     }
     fn toolbar(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("toolbar")
-            .frame(crate::palette::toolbar_frame())
+            .frame(crate::theme::toolbar_frame())
             .show(ctx, |ui| {
-                crate::palette::toolbar_style(ui);
                 if self.blocked {
                     ui.disable();
                 }
-                ui.horizontal_wrapped(|ui| {
+                ui.horizontal(|ui| {
                     ui.label(
                         RichText::new("UML STUDIO")
                             .strong()
                             .color(Color32::from_rgb(47, 79, 172)),
                     );
                     ui.separator();
-                    ui.menu_button("보기", |ui| {
-                        ui.checkbox(&mut self.show_project, "프로젝트 패널");
-                        ui.checkbox(&mut self.show_properties, "속성 패널");
-                        ui.checkbox(&mut self.show_diagnostics, "진단 패널");
-                    });
-                    ui.menu_button("파일", |ui| {
+                    egui::containers::menu::MenuButton::from_button(
+                        egui::Button::new("파일").frame_when_inactive(false),
+                    )
+                    .ui(ui, |ui| {
                         if ui.button("새 프로젝트    ⌘N").clicked() {
                             self.request(Action::New, ctx);
                             ui.close();
@@ -380,6 +372,14 @@ impl UmlApp {
                             self.request(Action::Home, ctx);
                             ui.close();
                         }
+                    });
+                    egui::containers::menu::MenuButton::from_button(
+                        egui::Button::new("보기").frame_when_inactive(false),
+                    )
+                    .ui(ui, |ui| {
+                        ui.checkbox(&mut self.show_project, "프로젝트 패널");
+                        ui.checkbox(&mut self.show_properties, "속성 패널");
+                        ui.checkbox(&mut self.show_diagnostics, "진단 패널");
                     });
                     let has = self.project.is_some();
                     if ui.add_enabled(has, egui::Button::new("저장")).clicked() {
@@ -417,23 +417,28 @@ impl UmlApp {
                     }
                     if let Some(p) = &self.project {
                         ui.separator();
-                        ui.label(format!(
-                            "{}{}",
-                            p.name,
-                            if self.dirty() { " •" } else { "" }
-                        ));
+                        let name = format!("{}{}", p.name, if self.dirty() { " •" } else { "" });
+                        ui.add_sized(
+                            [ui.available_width().max(0.), 32.],
+                            egui::Label::new(&name).truncate(),
+                        )
+                        .on_hover_text(name);
                     }
                 });
             });
         egui::TopBottomPanel::bottom("status")
-            .frame(crate::palette::toolbar_frame())
+            .frame(crate::theme::toolbar_frame())
             .show(ctx, |ui| {
-                crate::palette::toolbar_style(ui);
                 if self.blocked {
                     ui.disable();
                 }
-                ui.horizontal_wrapped(|ui| {
-                    ui.small(&self.status);
+                ui.horizontal(|ui| {
+                    let save_state = if self.dirty() {
+                        "변경사항 있음"
+                    } else {
+                        "저장됨"
+                    };
+                    ui.small(save_state).on_hover_text(&self.status);
                     ui.separator();
                     ui.small(format!("{}개 선택", self.canvas.selection.len()));
                     if let Some(d) = self
@@ -443,11 +448,6 @@ impl UmlApp {
                     {
                         ui.small(format!("{:.0}%", d.view.zoom * 100.));
                     }
-                    ui.small(match self.tool {
-                        Tool::Select => "선택 · Alt+클릭 겹친 대상 전환",
-                        Tool::Add(_) => "캔버스 클릭으로 추가 · Esc 취소",
-                        Tool::Connect(_) => "시작 → 도착 클릭 또는 드래그 · Esc 취소",
-                    });
                 });
             });
     }
@@ -542,24 +542,39 @@ impl UmlApp {
         if self.show_project {
             egui::SidePanel::left("diagrams")
                 .default_width(220.)
-                .min_width(170.)
+                .min_width(190.)
+                .max_width(320.)
+                .frame(crate::theme::panel_frame())
                 .show(ctx, |ui| {
                     if self.blocked {
                         ui.disable();
                     }
-                    ui.heading("프로젝트");
+                    ui.label(RichText::new("프로젝트").strong().size(16.));
+                    ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
+                    ui.spacing_mut().text_edit_width = ui.available_width();
                     if let Some(p) = &mut self.project {
-                        ui.text_edit_singleline(&mut p.name);
                         ui.add(
-                            egui::TextEdit::singleline(&mut self.search)
-                                .hint_text("다이어그램·요소 검색"),
+                            crate::components::text_input(&mut p.name)
+                                .desired_width(ui.available_width())
+                                .min_size(egui::vec2(0., 32.)),
+                        );
+                        ui.add(
+                            crate::components::text_input(&mut self.search)
+                                .hint_text("다이어그램·요소 검색")
+                                .desired_width(ui.available_width())
+                                .min_size(egui::vec2(0., 32.)),
                         );
                         ui.separator();
                         ui.horizontal(|ui| {
                             ui.strong("다이어그램");
-                            if ui.small_button("+ 추가").clicked() {
-                                self.add_dialog = true;
-                            }
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui.button("+ 추가").clicked() {
+                                        self.add_dialog = true;
+                                    }
+                                },
+                            );
                         });
                         egui::ScrollArea::vertical()
                             .id_salt("diagram-list")
@@ -580,14 +595,11 @@ impl UmlApp {
                                     {
                                         continue;
                                     }
-                                    let row = ui.add(
-                                        egui::Button::new(format!(
-                                            "{} · {}",
-                                            d.kind.label(),
-                                            d.name
-                                        ))
-                                        .selected(i == self.active)
-                                        .truncate(),
+                                    let row = crate::components::list_row(
+                                        ui,
+                                        &d.name,
+                                        i == self.active && !self.canvas_hidden,
+                                        Some(d.kind),
                                     );
                                     if row.clicked() {
                                         select = Some(i);
@@ -619,7 +631,7 @@ impl UmlApp {
                             ui.separator();
                             ui.label("다이어그램 이름");
                             ui.add(
-                                egui::TextEdit::singleline(&mut d.name)
+                                crate::components::text_input(&mut d.name)
                                     .id(egui::Id::new(("diagram-name", d.id))),
                             );
                             ui.add_space(15.);
@@ -632,12 +644,13 @@ impl UmlApp {
                                         if !n.name.to_lowercase().contains(&search) {
                                             continue;
                                         }
-                                        if ui
-                                            .selectable_label(
-                                                self.canvas.selection.contains(&n.id),
-                                                &n.name,
-                                            )
-                                            .clicked()
+                                        if crate::components::list_row(
+                                            ui,
+                                            &n.name,
+                                            self.canvas.selection.contains(&n.id),
+                                            None,
+                                        )
+                                        .clicked()
                                         {
                                             self.canvas.selection.clear();
                                             self.canvas.selection.insert(n.id);
@@ -651,12 +664,13 @@ impl UmlApp {
                                         {
                                             continue;
                                         }
-                                        if ui
-                                            .selectable_label(
-                                                self.canvas.selection.contains(&r.id),
-                                                format!("관계 · {} {}", r.kind.label(), r.name),
-                                            )
-                                            .clicked()
+                                        if crate::components::list_row(
+                                            ui,
+                                            &format!("관계 · {} {}", r.kind.label(), r.name),
+                                            self.canvas.selection.contains(&r.id),
+                                            None,
+                                        )
+                                        .clicked()
                                         {
                                             self.canvas.selection.clear();
                                             self.canvas.selection.insert(r.id);
@@ -722,11 +736,14 @@ impl UmlApp {
             egui::SidePanel::right("properties")
                 .default_width(310.)
                 .width_range(260_f32.min(max_width)..=max_width)
+                .frame(crate::theme::panel_frame())
                 .show(ctx, |ui| {
                     if self.blocked {
                         ui.disable();
                     }
-                    ui.heading("속성");
+                    ui.label(RichText::new("속성").strong().size(16.));
+                    ui.separator();
+                    ui.spacing_mut().text_edit_width = ui.available_width();
                     // A vertical-only ScrollArea grows horizontally to fit its content,
                     // feeding that larger width back into the SidePanel every frame.
                     egui::ScrollArea::both()
@@ -750,7 +767,7 @@ impl UmlApp {
                 });
         }
         egui::CentralPanel::default()
-            .frame(egui::Frame::new().fill(Color32::from_rgb(247, 249, 252)))
+            .frame(egui::Frame::new().fill(crate::theme::PANEL))
             .show(ctx, |ui| {
                 if self.blocked {
                     ui.disable();
@@ -766,23 +783,17 @@ impl UmlApp {
                                     if let Some((i, d)) =
                                         p.diagrams.iter().enumerate().find(|(_, d)| d.id == *id)
                                     {
-                                        if ui
-                                            .add_sized(
-                                                [160., 30.],
-                                                egui::Button::new(&d.name)
-                                                    .selected(i == self.active)
-                                                    .truncate(),
-                                            )
-                                            .clicked()
-                                        {
-                                            tab_select = Some(i);
-                                        }
-                                        if ui
-                                            .small_button("닫기")
-                                            .on_hover_text("탭 닫기 · 다이어그램은 유지됩니다")
-                                            .clicked()
-                                        {
+                                        let tab = crate::components::diagram_tab(
+                                            ui,
+                                            egui::Id::new(("diagram-tab", *id)),
+                                            d.kind,
+                                            &d.name,
+                                            i == self.active,
+                                        );
+                                        if tab.close.clicked() {
                                             tab_close = Some(*id);
+                                        } else if tab.select.clicked() {
+                                            tab_select = Some(i);
                                         }
                                     }
                                 }
@@ -818,9 +829,31 @@ impl UmlApp {
                     self.tool = Tool::Select;
                 }
                 if self.canvas_hidden {
-                    ui.centered_and_justified(|ui| {
-                        ui.label("왼쪽 목록에서 다이어그램을 열어주세요");
+                    let mut reopen = None;
+                    ui.vertical_centered(|ui| {
+                        ui.add_space((ui.available_height() * 0.35).max(24.));
+                        ui.label(RichText::new("열린 다이어그램이 없습니다").strong());
+                        ui.label("닫은 다이어그램은 프로젝트에 보관되어 있습니다.");
+                        ui.menu_button("다이어그램 열기", |ui| {
+                            if let Some(project) = &self.project {
+                                ui.set_min_width(220.);
+                                for (i, d) in project.diagrams.iter().enumerate() {
+                                    if crate::components::list_row(ui, &d.name, false, Some(d.kind))
+                                        .clicked()
+                                    {
+                                        reopen = Some((i, d.id));
+                                        ui.close();
+                                    }
+                                }
+                            }
+                        });
                     });
+                    if let Some((i, id)) = reopen {
+                        self.active = i;
+                        self.tabs.push(id);
+                        self.canvas_hidden = false;
+                        self.tool = Tool::Select;
+                    }
                     return;
                 }
                 let Some(d) = self
@@ -838,9 +871,9 @@ impl UmlApp {
                 if !self.tabs.contains(&d.id) {
                     self.tabs.push(d.id);
                 }
-                crate::palette::toolbar_frame().show(ui, |ui| {
-                    crate::palette::toolbar_style(ui);
-                    ui.horizontal_wrapped(|ui| {
+                crate::theme::toolbar_frame().show(ui, |ui| {
+                    ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
+                    ui.horizontal(|ui| {
                         ui.selectable_value(&mut self.tool, Tool::Select, "선택");
                         let kinds: Vec<_> = match d.kind {
                             DiagramKind::Class => vec![
@@ -862,17 +895,22 @@ impl UmlApp {
                             DiagramKind::Sequence => vec![],
                         };
                         if !kinds.is_empty() {
-                            ui.menu_button("요소 추가", |ui| {
+                            egui::containers::menu::MenuButton::from_button(
+                                egui::Button::new("요소 추가")
+                                    .selected(matches!(self.tool, Tool::Add(_))),
+                            )
+                            .ui(ui, |ui| {
                                 for k in kinds {
                                     crate::palette::node_tool(ui, &mut self.tool, k);
                                 }
                             });
                         }
-                        if let Tool::Add(kind) = self.tool {
-                            ui.label(format!("현재 도구: {}", kind.label()));
-                        }
                         if d.kind != DiagramKind::Sequence {
-                            ui.menu_button("관계 연결", |ui| {
+                            egui::containers::menu::MenuButton::from_button(
+                                egui::Button::new("관계 연결")
+                                    .selected(matches!(self.tool, Tool::Connect(_))),
+                            )
+                            .ui(ui, |ui| {
                                 for k in RelationKind::ALL {
                                     if (d.kind == DiagramKind::Class
                                         && matches!(
@@ -905,84 +943,50 @@ impl UmlApp {
                                     }
                                 }
                             });
-                            if let Tool::Connect(kind) = self.tool {
-                                ui.label(format!(
-                                    "{} · {}",
-                                    kind.label(),
-                                    if self.canvas.connection.is_some() {
-                                        "도착 요소를 선택하세요"
-                                    } else {
-                                        "시작 요소를 선택하세요"
-                                    },
-                                ));
-                                if ui.button("연결 취소").clicked() {
-                                    self.tool = Tool::Select;
-                                    self.canvas.connection = None;
-                                }
-                            }
                         } else {
                             ui.menu_button("시퀀스 추가", |ui| {
                                 sequence_add(ui, &mut d.sequence, &mut self.canvas.selection)
                             });
-                            let selected: Vec<_> = d
-                                .sequence
-                                .participants
-                                .iter()
-                                .filter(|p| self.canvas.selection.contains(&p.id))
-                                .map(|p| p.id)
-                                .collect();
-                            if selected.len() == 2 && ui.button("선택 참여자로 메시지").clicked()
-                            {
-                                let m = Message {
-                                    id: id(),
-                                    source: selected[0],
-                                    target: selected[1],
-                                    kind: MessageKind::Sync,
-                                    text: "호출()".into(),
-                                    method_ref: None,
-                                };
-                                self.canvas.selection.clear();
-                                self.canvas.selection.insert(m.id);
-                                d.sequence.messages.push(m);
-                            }
-                            if ui
-                                .checkbox(&mut d.sequence.auto_activate, "활성 구간 자동 생성")
-                                .changed()
-                            {
-                                d.sequence.regenerate_activations();
-                            }
                         }
-                    });
-                    ui.horizontal_wrapped(|ui| {
-                        ui.checkbox(&mut self.canvas.grid, "그리드");
-                        ui.checkbox(&mut self.canvas.snap, "맞춤");
-                        if ui.button("화면 맞춤").clicked() {
-                            canvas::fit(d, self.canvas_size);
-                        }
-                        egui::ComboBox::from_id_salt("zoom")
-                            .selected_text(format!("{:.0}%", d.view.zoom * 100.))
-                            .show_ui(ui, |ui| {
-                                for z in [0.25, 0.5, 0.75, 1., 1.25, 1.5, 2.] {
-                                    if ui
-                                        .selectable_label(
-                                            d.view.zoom == z,
-                                            format!("{:.0}%", z * 100.),
-                                        )
-                                        .clicked()
-                                    {
-                                        let world = Point::new(
-                                            (self.canvas_size.x / 2. - d.view.pan.x) / d.view.zoom,
-                                            (self.canvas_size.y / 2. - d.view.pan.y) / d.view.zoom,
-                                        );
-                                        d.view.zoom = z;
-                                        d.view.pan = Point::new(
-                                            self.canvas_size.x / 2. - world.x * z,
-                                            self.canvas_size.y / 2. - world.y * z,
-                                        );
-                                    }
+                        ui.menu_button("더보기", |ui| {
+                            if self.tool != Tool::Select
+                                && ui.button("연결 / 추가 취소 · Esc").clicked()
+                            {
+                                self.tool = Tool::Select;
+                                self.canvas.connection = None;
+                                ui.close();
+                            }
+                            if d.kind == DiagramKind::Sequence {
+                                let selected: Vec<_> = d
+                                    .sequence
+                                    .participants
+                                    .iter()
+                                    .filter(|p| self.canvas.selection.contains(&p.id))
+                                    .map(|p| p.id)
+                                    .collect();
+                                if selected.len() == 2
+                                    && ui.button("선택 참여자로 메시지").clicked()
+                                {
+                                    let m = Message {
+                                        id: id(),
+                                        source: selected[0],
+                                        target: selected[1],
+                                        kind: MessageKind::Sync,
+                                        text: "호출()".into(),
+                                        method_ref: None,
+                                    };
+                                    self.canvas.selection.clear();
+                                    self.canvas.selection.insert(m.id);
+                                    d.sequence.messages.push(m);
                                 }
-                            });
-                        ui.menu_button("선택 편집", |ui| {
+                                if ui
+                                    .checkbox(&mut d.sequence.auto_activate, "활성 구간 자동 생성")
+                                    .changed()
+                                {
+                                    d.sequence.regenerate_activations();
+                                }
+                            }
+                            ui.separator();
                             ui.checkbox(&mut self.canvas.guides, "정렬 가이드");
                             for (label, horizontal) in
                                 [("가로 균등 간격", true), ("세로 균등 간격", false)]
@@ -1027,12 +1031,62 @@ impl UmlApp {
                                 }
                             }
                         });
-                        ui.small(match self.tool {
-                            Tool::Select => "드래그 선택/이동 · 모서리 핸들로 크기 조절",
-                            Tool::Add(_) => "캔버스를 클릭해 추가",
-                            Tool::Connect(_) => "시작 → 도착 클릭 또는 드래그 · Esc 취소",
-                        });
                     });
+                    ui.separator();
+                    ui.horizontal(|ui| {
+                        if ui.available_width() < 440. {
+                            ui.menu_button("보기 옵션", |ui| {
+                                ui.checkbox(&mut self.canvas.grid, "그리드");
+                                ui.checkbox(&mut self.canvas.snap, "맞춤");
+                            });
+                        } else {
+                            ui.checkbox(&mut self.canvas.grid, "그리드");
+                            ui.checkbox(&mut self.canvas.snap, "맞춤");
+                        }
+                        if ui.button("화면 맞춤").clicked() {
+                            canvas::fit(d, self.canvas_size);
+                        }
+                        egui::ComboBox::from_id_salt("zoom")
+                            .width(76.)
+                            .selected_text(format!("{:.0}%", d.view.zoom * 100.))
+                            .show_ui(ui, |ui| {
+                                for z in [0.25, 0.5, 0.75, 1., 1.25, 1.5, 2.] {
+                                    if ui
+                                        .selectable_label(
+                                            d.view.zoom == z,
+                                            format!("{:.0}%", z * 100.),
+                                        )
+                                        .clicked()
+                                    {
+                                        let world = Point::new(
+                                            (self.canvas_size.x / 2. - d.view.pan.x) / d.view.zoom,
+                                            (self.canvas_size.y / 2. - d.view.pan.y) / d.view.zoom,
+                                        );
+                                        d.view.zoom = z;
+                                        d.view.pan = Point::new(
+                                            self.canvas_size.x / 2. - world.x * z,
+                                            self.canvas_size.y / 2. - world.y * z,
+                                        );
+                                    }
+                                }
+                            });
+                    });
+                    let hint: String = match self.tool {
+                        Tool::Select => "선택 · 드래그로 이동 · Alt+클릭으로 겹친 요소 전환".into(),
+                        Tool::Add(kind) => {
+                            format!("{} 추가 · 캔버스를 클릭하세요 · Esc 취소", kind.label())
+                        }
+                        Tool::Connect(kind) => format!(
+                            "{} · {} · 초록 테두리: 연결 가능 · Esc 취소",
+                            kind.label(),
+                            if self.canvas.connection.is_some() {
+                                "도착 요소 선택"
+                            } else {
+                                "시작 요소 선택"
+                            }
+                        ),
+                    };
+                    crate::components::tool_hint(ui, &hint);
                 });
                 self.canvas_size = ui.available_size();
                 self.canvas.ui(ui, d, &mut self.tool);
@@ -1564,7 +1618,7 @@ mod tests {
         let mut text = "편집 중".to_string();
         let _ = ctx.run(key(Key::Delete, false), |ctx| {
             egui::CentralPanel::default().show(ctx, |ui| {
-                ui.add(egui::TextEdit::singleline(&mut text).id_salt("focus-test"))
+                ui.add(crate::components::text_input(&mut text).id_salt("focus-test"))
                     .request_focus();
             });
             assert!(ctx.wants_keyboard_input());
@@ -1573,7 +1627,7 @@ mod tests {
         assert_eq!(app.project.as_ref().unwrap(), &before);
         let _ = ctx.run(key(Key::D, true), |ctx| {
             egui::CentralPanel::default().show(ctx, |ui| {
-                ui.add(egui::TextEdit::singleline(&mut text).id_salt("focus-test"))
+                ui.add(crate::components::text_input(&mut text).id_salt("focus-test"))
                     .request_focus();
             });
             app.shortcuts(ctx);
@@ -1800,6 +1854,239 @@ mod tests {
                     assert!(rect.left() >= 320., "canvas was covered: {rect:?}");
                 }
             }
+        }
+    }
+    fn ui_frame(
+        ctx: &egui::Context,
+        app: &mut UmlApp,
+        size: egui::Vec2,
+        events: Vec<egui::Event>,
+    ) -> egui::FullOutput {
+        let time = ctx.input(|i| i.time) + 0.05;
+        ctx.run(
+            egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, size)),
+                events,
+                time: Some(time),
+                ..Default::default()
+            },
+            |ctx| {
+                app.update(ctx, &mut eframe::Frame::_new_kittest());
+            },
+        )
+    }
+    fn ui_click(
+        ctx: &egui::Context,
+        app: &mut UmlApp,
+        size: egui::Vec2,
+        pos: egui::Pos2,
+    ) -> egui::FullOutput {
+        ui_frame(ctx, app, size, vec![egui::Event::PointerMoved(pos)]);
+        for pressed in [true, false] {
+            ui_frame(
+                ctx,
+                app,
+                size,
+                vec![egui::Event::PointerButton {
+                    pos,
+                    button: egui::PointerButton::Primary,
+                    pressed,
+                    modifiers: egui::Modifiers::NONE,
+                }],
+            );
+        }
+        // Allow egui's previous-pass hit regions to settle after a tab disappears.
+        ui_frame(ctx, app, size, vec![]);
+        ui_frame(ctx, app, size, vec![])
+    }
+    fn label_rect(output: &egui::FullOutput, label: &str) -> egui::Rect {
+        fn find(shape: &egui::Shape, label: &str) -> Option<egui::Rect> {
+            match shape {
+                egui::Shape::Text(t) if t.galley.job.text == label => {
+                    Some(egui::Rect::from_min_size(t.pos, t.galley.size()))
+                }
+                egui::Shape::Vec(shapes) => shapes.iter().find_map(|s| find(s, label)),
+                _ => None,
+            }
+        }
+        output
+            .shapes
+            .iter()
+            .find_map(|s| find(&s.shape, label))
+            .expect(label)
+    }
+    #[test]
+    fn tabs_select_close_without_deleting_and_reopen_at_both_window_sizes() {
+        for size in [egui::vec2(1440., 900.), egui::vec2(820., 620.)] {
+            let ctx = egui::Context::default();
+            let mut app = app(&ctx);
+            app.show_project = false;
+            app.show_properties = false;
+            let ids: Vec<_> = app
+                .project
+                .as_ref()
+                .unwrap()
+                .diagrams
+                .iter()
+                .map(|d| d.id)
+                .collect();
+            app.tabs = ids.clone();
+            ui_frame(&ctx, &mut app, size, vec![]);
+            ui_frame(&ctx, &mut app, size, vec![]);
+            let tab_pos = |index: usize, part: &str| {
+                ctx.read_response(egui::Id::new(("diagram-tab", ids[index])).with(part))
+                    .unwrap()
+                    .rect
+                    .center()
+            };
+            ui_click(&ctx, &mut app, size, tab_pos(1, "select"));
+            assert_eq!(app.active, 1);
+            let selection = app.project.as_ref().unwrap().diagrams[1].nodes[0].id;
+            app.canvas.selection.insert(selection);
+            ui_click(&ctx, &mut app, size, tab_pos(0, "close"));
+            assert_eq!(app.active, 1, "closing a background tab must not select it");
+            assert!(app.canvas.selection.contains(&selection));
+            ui_click(&ctx, &mut app, size, tab_pos(1, "close"));
+            assert_eq!(
+                app.active, 2,
+                "size={size:?}, tabs={:?}, ids={ids:?}",
+                app.tabs
+            );
+            let output = ui_click(&ctx, &mut app, size, tab_pos(2, "close"));
+            assert!(app.tabs.is_empty());
+            assert!(app.canvas_hidden);
+            assert_eq!(app.project.as_ref().unwrap().diagrams.len(), 3);
+            let open = label_rect(&output, "다이어그램 열기").center();
+            let output = ui_click(&ctx, &mut app, size, open);
+            let name = app.project.as_ref().unwrap().diagrams[0].name.clone();
+            ui_click(&ctx, &mut app, size, label_rect(&output, &name).center());
+            assert!(!app.canvas_hidden);
+            assert_eq!(app.active, 0);
+            assert_eq!(app.tabs, vec![ids[0]]);
+            assert!(
+                !app.history.can_undo(),
+                "tab navigation must not enter document history"
+            );
+        }
+    }
+    #[test]
+    fn tool_rows_stay_fixed_and_controls_fit_at_both_window_sizes() {
+        for size in [egui::vec2(1440., 900.), egui::vec2(820., 620.)] {
+            let ctx = egui::Context::default();
+            let mut app = app(&ctx);
+            ui_frame(&ctx, &mut app, size, vec![]);
+            // Include the narrow canvas with its inspector explicitly opened.
+            app.show_properties = true;
+            let mut baseline = None;
+            for tool in [
+                Tool::Select,
+                Tool::Add(NodeKind::UseCase),
+                Tool::Connect(RelationKind::Include),
+                Tool::Connect(RelationKind::Generalization),
+            ] {
+                app.tool = tool;
+                ui_frame(&ctx, &mut app, size, vec![]);
+                let output = ui_frame(&ctx, &mut app, size, vec![]);
+                if let Some(previous) = baseline {
+                    assert_eq!(app.canvas_size, previous);
+                }
+                baseline = Some(app.canvas_size);
+                let select = label_rect(&output, "선택");
+                let add = label_rect(&output, "요소 추가");
+                let relation = label_rect(&output, "관계 연결");
+                let more = label_rect(&output, "더보기");
+                assert!((select.center().y - add.center().y).abs() < 1.);
+                assert!((select.center().y - relation.center().y).abs() < 1.);
+                assert!((select.center().y - more.center().y).abs() < 1.);
+                assert!(
+                    select.right() < add.left()
+                        && add.right() < relation.left()
+                        && relation.right() < more.left()
+                );
+                let inspector_left =
+                    egui::containers::panel::PanelState::load(&ctx, egui::Id::new("properties"))
+                        .unwrap()
+                        .rect
+                        .left();
+                assert!(more.right() < inspector_left);
+                for label in [
+                    "파일",
+                    "보기",
+                    "저장",
+                    "실행 취소",
+                    "다시 실행",
+                    "내보내기",
+                    "화면 맞춤",
+                ] {
+                    let rect = label_rect(&output, label);
+                    assert!(
+                        rect.left() >= 0. && rect.right() <= size.x,
+                        "{label}: {rect:?}"
+                    );
+                    assert!(rect.height() < 25., "unexpected wrapped control: {label}");
+                }
+            }
+        }
+    }
+    #[test]
+    fn property_name_edit_through_text_input_can_be_undone_and_redone() {
+        fn sized_key(k: Key, size: egui::Vec2) -> egui::RawInput {
+            let mut input = key(k, true);
+            input.screen_rect = Some(egui::Rect::from_min_size(egui::Pos2::ZERO, size));
+            input
+        }
+        for size in [egui::vec2(1440., 900.), egui::vec2(820., 620.)] {
+            let ctx = egui::Context::default();
+            let mut app = app(&ctx);
+            ui_frame(&ctx, &mut app, size, vec![]);
+            let node = app.project.as_ref().unwrap().diagrams[0]
+                .nodes
+                .iter()
+                .find(|n| n.kind == NodeKind::UseCase)
+                .unwrap()
+                .clone();
+            app.inspect_element(node.id);
+            app.properties_state.focus_name = Some(node.id);
+            ui_frame(&ctx, &mut app, size, vec![]);
+            let _ = ctx.run(sized_key(Key::A, size), |ctx| {
+                app.update(ctx, &mut eframe::Frame::_new_kittest())
+            });
+            ui_frame(
+                &ctx,
+                &mut app,
+                size,
+                vec![egui::Event::Text("속성에서 수정한 이름".into())],
+            );
+            let name = |app: &UmlApp| {
+                app.project.as_ref().unwrap().diagrams[0]
+                    .nodes
+                    .iter()
+                    .find(|n| n.id == node.id)
+                    .unwrap()
+                    .name
+                    .clone()
+            };
+            assert_eq!(
+                name(&app),
+                "속성에서 수정한 이름",
+                "size={size:?}, focus={:?}",
+                ctx.memory(|m| m.focused())
+            );
+            let output = ui_frame(&ctx, &mut app, size, vec![]);
+            ui_click(&ctx, &mut app, size, label_rect(&output, "선택").center());
+            let _ = ctx.run(sized_key(Key::Z, size), |ctx| {
+                app.update(ctx, &mut eframe::Frame::_new_kittest())
+            });
+            assert_eq!(name(&app), node.name);
+            let _ = ctx.run(sized_key(Key::Y, size), |ctx| {
+                app.update(ctx, &mut eframe::Frame::_new_kittest())
+            });
+            assert_eq!(
+                name(&app),
+                "속성에서 수정한 이름",
+                "size={size:?}, focus={:?}",
+                ctx.memory(|m| m.focused())
+            );
         }
     }
     #[test]

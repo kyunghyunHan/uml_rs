@@ -1,6 +1,7 @@
 pub mod app;
 pub mod canvas;
 pub mod commands;
+pub mod components;
 pub mod migration;
 pub mod model;
 pub mod references;
@@ -9,6 +10,7 @@ pub mod scene;
 pub mod sequence_layout;
 pub mod storage;
 pub mod text_layout;
+pub mod theme;
 pub mod validation;
 
 pub mod demo;

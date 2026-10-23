@@ -33,8 +33,8 @@ impl Catalog {
     }
 }
 fn field(ui: &mut egui::Ui, label: &str, s: &mut String) {
-    ui.label(label);
-    ui.add(egui::TextEdit::singleline(s).desired_width(ui.available_width()));
+    crate::components::field_label(ui, label);
+    ui.add(crate::components::text_input(s).desired_width(ui.available_width()));
 }
 fn enum_combo<T: Copy + PartialEq>(
     ui: &mut egui::Ui,
@@ -43,8 +43,9 @@ fn enum_combo<T: Copy + PartialEq>(
     options: &[T],
     name: impl Fn(T) -> String,
 ) {
+    crate::components::field_label(ui, label);
     egui::ComboBox::from_id_salt(label)
-        .width(ui.available_width().min(260.))
+        .width(ui.available_width())
         .truncate()
         .selected_text(name(*current))
         .show_ui(ui, |ui| {
@@ -59,9 +60,9 @@ struct QuickEntry {
     error: Option<String>,
 }
 fn members_ui(ui: &mut egui::Ui, members: &mut Vec<Member>, method: bool, entry: &mut QuickEntry) {
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
         let input = ui.add(
-            egui::TextEdit::singleline(&mut entry.text)
+            crate::components::text_input(&mut entry.text)
                 .hint_text(if method {
                     "+ sort(values: List<int>): void"
                 } else {
@@ -70,7 +71,7 @@ fn members_ui(ui: &mut egui::Ui, members: &mut Vec<Member>, method: bool, entry:
                 .desired_width((ui.available_width() - 80.).clamp(60., 180.)),
         );
         let enter = input.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
-        if ui.small_button("빠른 추가").clicked() || enter {
+        if ui.button("추가").clicked() || enter {
             match Member::parse(&entry.text, method) {
                 Ok(member) => {
                     members.push(member);
@@ -90,23 +91,23 @@ fn members_ui(ui: &mut egui::Ui, members: &mut Vec<Member>, method: bool, entry:
     for (i, m) in members.iter_mut().enumerate() {
         ui.push_id(m.id, |ui| {
             ui.group(|ui| {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     ui.add_sized(
                         [(ui.available_width() - 100.).max(70.), 24.],
                         egui::Label::new(egui::RichText::new(m.text(method)).strong()).truncate(),
                     )
                     .on_hover_text(m.text(method));
-                    if ui.small_button("↑").clicked() && i > 0 {
+                    if crate::components::icon_button(ui, "↑").clicked() && i > 0 {
                         swap = Some((i, i - 1));
                     }
-                    if ui.small_button("↓").clicked() {
+                    if crate::components::icon_button(ui, "↓").clicked() {
                         swap = Some((i, i + 1));
                     }
-                    if ui.small_button("×").clicked() {
+                    if crate::components::icon_button(ui, "×").clicked() {
                         remove = Some(i);
                     }
                 });
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     egui::ComboBox::from_id_salt("visibility")
                         .width(45.)
                         .selected_text(&m.visibility)
@@ -116,7 +117,8 @@ fn members_ui(ui: &mut egui::Ui, members: &mut Vec<Member>, method: bool, entry:
                             }
                         });
                     ui.add(
-                        egui::TextEdit::singleline(&mut m.name).desired_width(ui.available_width()),
+                        crate::components::text_input(&mut m.name)
+                            .desired_width(ui.available_width()),
                     );
                 });
                 field(
@@ -129,7 +131,7 @@ fn members_ui(ui: &mut egui::Ui, members: &mut Vec<Member>, method: bool, entry:
                 } else {
                     field(ui, "기본값", &mut m.value);
                 }
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     ui.checkbox(&mut m.is_static, "static");
                     ui.checkbox(&mut m.is_abstract, "abstract");
                 });
@@ -152,7 +154,7 @@ fn members_ui(ui: &mut egui::Ui, members: &mut Vec<Member>, method: bool, entry:
 }
 fn participant_combo(ui: &mut egui::Ui, label: &str, id: &mut Id, ps: &[Participant]) {
     egui::ComboBox::from_id_salt(label)
-        .width(ui.available_width().min(260.))
+        .width(ui.available_width())
         .truncate()
         .selected_text(format!(
             "{label}: {}",
@@ -169,7 +171,7 @@ fn participant_combo(ui: &mut egui::Ui, label: &str, id: &mut Id, ps: &[Particip
 }
 fn event_combo(ui: &mut egui::Ui, label: &str, id: &mut Id, ms: &[Message]) {
     egui::ComboBox::from_id_salt(label)
-        .width(ui.available_width().min(260.))
+        .width(ui.available_width())
         .truncate()
         .selected_text(format!(
             "{label}: {}",
@@ -280,7 +282,7 @@ pub fn sequence_list(
                 .dnd_drag_source(
                     egui::Id::new(("sequence-order", id)),
                     SequenceDrag { id, participant },
-                    |ui| ui.selectable_label(selection.contains(&id), label),
+                    |ui| crate::components::list_row(ui, &label, selection.contains(&id), None),
                 )
                 .inner;
             if response.clicked() {
@@ -331,9 +333,7 @@ pub fn sequence_list(
         )
     {
         if label.to_lowercase().contains(search)
-            && ui
-                .selectable_label(selection.contains(&id), label)
-                .clicked()
+            && crate::components::list_row(ui, &label, selection.contains(&id), None).clicked()
         {
             selection.clear();
             selection.insert(id);
@@ -377,16 +377,27 @@ pub fn properties(
         .find(|n| n.id == selected && matches!(n.kind, NodeKind::Boundary | NodeKind::Package))
         .map(|n| n.layout);
     if let Some(n) = d.nodes.iter_mut().find(|n| n.id == selected) {
-        ui.strong(n.kind.label());
-        ui.label(if n.kind == NodeKind::Note {
-            "주석"
-        } else {
-            "이름"
-        });
+        ui.label(
+            egui::RichText::new(n.kind.label())
+                .strong()
+                .color(crate::theme::BLUE_TEXT),
+        );
+        crate::components::field_label(
+            ui,
+            if n.kind == NodeKind::Note {
+                "주석"
+            } else {
+                "이름"
+            },
+        );
         let edit = if n.kind == NodeKind::Note {
-            ui.add(egui::TextEdit::multiline(&mut n.name).id_salt(n.id))
+            ui.add(
+                egui::TextEdit::multiline(&mut n.name)
+                    .desired_width(ui.available_width())
+                    .id_salt(n.id),
+            )
         } else {
-            ui.add(egui::TextEdit::singleline(&mut n.name).id_salt(n.id))
+            ui.add(crate::components::text_input(&mut n.name).id_salt(n.id))
         };
         if state.focus_name == Some(n.id) {
             edit.request_focus();
@@ -395,11 +406,11 @@ pub fn properties(
         ui.collapsing("외형 · 배치", |ui| {
             let old_size = n.layout.size;
             ui.label("위치 / 크기");
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 ui.add(egui::DragValue::new(&mut n.layout.pos.x).prefix("X "));
                 ui.add(egui::DragValue::new(&mut n.layout.pos.y).prefix("Y "));
             });
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 ui.add(
                     egui::DragValue::new(&mut n.layout.size.x)
                         .range(50.0..=20000.)
@@ -416,8 +427,9 @@ pub fn properties(
             }
         });
         if !matches!(n.kind, NodeKind::Boundary | NodeKind::Package) {
+            crate::components::field_label(ui, "포함 경계 / 패키지");
             egui::ComboBox::from_id_salt("container")
-                .width(ui.available_width().min(260.))
+                .width(ui.available_width())
                 .truncate()
                 .selected_text(
                     n.boundary
@@ -444,7 +456,7 @@ pub fn properties(
                 ],
                 |k| k.label().into(),
             );
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 ui.radio_value(&mut n.sizing, SizeMode::Auto, "자동 크기");
                 ui.radio_value(&mut n.sizing, SizeMode::Manual, "수동 크기");
             });
@@ -485,15 +497,19 @@ pub fn properties(
         }
         n.reflow();
     } else if let Some(mut r) = relation_draft {
-        ui.strong(r.kind.label());
+        ui.label(
+            egui::RichText::new("관계 설정")
+                .strong()
+                .color(crate::theme::BLUE_TEXT),
+        );
         enum_combo(ui, "관계 종류", &mut r.kind, &RelationKind::ALL, |k| {
             k.label().into()
         });
         field(ui, "관계 이름 / 라벨", &mut r.name);
-        ui.label("시작 → 도착");
+        crate::components::section(ui, "연결 대상");
         for (label, id) in [("시작", &mut r.source), ("도착", &mut r.target)] {
             egui::ComboBox::from_id_salt(label)
-                .width(ui.available_width().min(260.))
+                .width(ui.available_width())
                 .truncate()
                 .selected_text(format!(
                     "{label}: {}",
@@ -513,10 +529,13 @@ pub fn properties(
         if r.kind == RelationKind::Association {
             ui.checkbox(&mut r.navigable, "연관 탐색 방향 →");
         }
-        field(ui, "시작 역할", &mut r.source_role);
-        field(ui, "시작 다중성", &mut r.source_multiplicity);
-        field(ui, "도착 역할", &mut r.target_role);
-        field(ui, "도착 다중성", &mut r.target_multiplicity);
+        ui.collapsing("역할 · 다중성", |ui| {
+            field(ui, "시작 역할", &mut r.source_role);
+            field(ui, "시작 다중성", &mut r.source_multiplicity);
+            field(ui, "도착 역할", &mut r.target_role);
+            field(ui, "도착 다중성", &mut r.target_multiplicity);
+        });
+        crate::components::section(ui, "경로");
         if r.waypoints.is_empty() {
             let mut manual = r.bend.is_some();
             if ui.checkbox(&mut manual, "직교 경로 수동 조절").changed() {
@@ -530,11 +549,11 @@ pub fn properties(
             let mut remove = None;
             for (i, point) in r.waypoints.iter_mut().enumerate() {
                 ui.push_id(i, |ui| {
-                    ui.horizontal(|ui| {
+                    ui.horizontal_wrapped(|ui| {
                         ui.label(format!("{}", i + 1));
                         ui.add(egui::DragValue::new(&mut point.x).prefix("X "));
                         ui.add(egui::DragValue::new(&mut point.y).prefix("Y "));
-                        if ui.small_button("삭제").clicked() {
+                        if crate::components::delete_button(ui, "삭제").clicked() {
                             remove = Some(i);
                         }
                     });
@@ -608,7 +627,7 @@ pub fn properties(
             ui.label("참여자 이름");
             let edit = ui.add_enabled(
                 p.type_ref.is_none(),
-                egui::TextEdit::singleline(&mut p.name).id_salt((p.id, "rename")),
+                crate::components::text_input(&mut p.name).id_salt((p.id, "rename")),
             );
             if state.focus_name == Some(p.id) {
                 edit.request_focus();
@@ -620,7 +639,7 @@ pub fn properties(
             type_combo(ui, &mut p.type_ref, catalog);
             ui.checkbox(&mut p.actor, "액터 형태");
             let mut swap = None;
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 if ui.button("← 왼쪽").clicked() && i > 0 {
                     swap = Some(i - 1);
                 }
@@ -638,7 +657,7 @@ pub fn properties(
             ui.label("메시지");
             let edit = ui.add_enabled(
                 m.method_ref.is_none(),
-                egui::TextEdit::singleline(&mut m.text).id_salt((m.id, "rename")),
+                crate::components::text_input(&mut m.text).id_salt((m.id, "rename")),
             );
             if state.focus_name == Some(m.id) {
                 edit.request_focus();
@@ -664,7 +683,7 @@ pub fn properties(
             );
             let mut swap = None;
             let mut insert = None;
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 if ui.button("↑").clicked() && i > 0 {
                     swap = Some(i - 1);
                 }
@@ -672,7 +691,7 @@ pub fn properties(
                     swap = Some(i + 1);
                 }
             });
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 if ui.button("위에 삽입").clicked() {
                     insert = Some(i);
                 }
@@ -744,8 +763,9 @@ pub fn properties(
             }
         }
     }
+    ui.add_space(16.);
     ui.separator();
-    if ui.button("선택 삭제").clicked() {
+    if crate::components::delete_button(ui, "선택 삭제").clicked() {
         d.delete(selection);
         selection.clear();
     }
@@ -753,7 +773,7 @@ pub fn properties(
 
 fn type_combo(ui: &mut egui::Ui, current: &mut Option<Id>, catalog: &Catalog) {
     egui::ComboBox::from_id_salt("type-ref")
-        .width(ui.available_width().min(260.))
+        .width(ui.available_width())
         .truncate()
         .selected_text(
             current
@@ -790,7 +810,7 @@ fn method_combo(
         .map(|n| n.methods.as_slice())
         .unwrap_or(&[]);
     egui::ComboBox::from_id_salt("method-ref")
-        .width(ui.available_width().min(260.))
+        .width(ui.available_width())
         .truncate()
         .selected_text(
             current
@@ -810,7 +830,7 @@ fn method_combo(
 }
 fn range_combo(ui: &mut egui::Ui, label: &str, current: &mut Option<Id>, ps: &[Participant]) {
     egui::ComboBox::from_id_salt(label)
-        .width(ui.available_width().min(260.))
+        .width(ui.available_width())
         .truncate()
         .selected_text(format!(
             "{label}: {}",
@@ -844,11 +864,15 @@ fn specification_ui(
                 ("사후조건", &mut spec.postconditions),
             ] {
                 ui.label(label);
-                ui.add(egui::TextEdit::multiline(value).desired_rows(2));
+                ui.add(
+                    egui::TextEdit::multiline(value)
+                        .desired_width(ui.available_width())
+                        .desired_rows(2),
+                );
             }
             ui.strong("관련 시퀀스");
             for (id, name) in &catalog.sequences {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     let mut linked = spec.sequences.contains(id);
                     let label_width = (ui.available_width() - 55.).max(40.);
                     if ui
@@ -869,7 +893,7 @@ fn specification_ui(
                             spec.sequences.retain(|old| old != id);
                         }
                     }
-                    if linked && ui.small_button("열기").clicked() {
+                    if linked && ui.button("열기").clicked() {
                         state.open_diagram = Some(*id);
                     }
                 });
@@ -881,7 +905,7 @@ fn specification_ui(
                 .copied()
                 .collect();
             for id in missing {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     ui.colored_label(egui::Color32::DARK_RED, "삭제된 시퀀스 참조");
                     if ui.button("연결 해제").clicked() {
                         spec.sequences.retain(|old| *old != id);

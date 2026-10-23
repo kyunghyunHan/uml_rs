@@ -129,7 +129,7 @@ impl CanvasState {
         let origin = rect.min;
         let mut changed = false;
         self.finished_drag = false;
-        painter.rect_filled(rect, 0., Color32::from_rgb(247, 249, 252));
+        painter.rect_filled(rect, 0., crate::theme::CANVAS);
         let pointer = ui.input(|i| i.pointer.hover_pos());
         let kind = match *tool {
             Tool::Connect(kind) => Some(kind),
@@ -188,12 +188,16 @@ impl CanvasState {
             d.view.pan.y += delta.y;
         }
         if self.grid && d.view.zoom > 0.25 {
-            let spacing = 20. * d.view.zoom;
+            let mut spacing = 20. * d.view.zoom;
+            // Hide intermediate dots when zoomed out, keeping the grid calm.
+            while spacing < 14. {
+                spacing *= 2.;
+            }
             let mut x = rect.left() + d.view.pan.x.rem_euclid(spacing);
             while x < rect.right() {
                 let mut y = rect.top() + d.view.pan.y.rem_euclid(spacing);
                 while y < rect.bottom() {
-                    painter.circle_filled(egui::pos2(x, y), 1., Color32::from_rgb(211, 219, 229));
+                    painter.circle_filled(egui::pos2(x, y), 1., Color32::from_rgb(225, 231, 239));
                     y += spacing;
                 }
                 x += spacing;
@@ -373,7 +377,7 @@ impl CanvasState {
                         egui::vec2(r.size.x * d.view.zoom, r.size.y * d.view.zoom),
                     ),
                     0.,
-                    Stroke::new(1_f32, Color32::from_rgb(63, 111, 235)),
+                    Stroke::new(1_f32, crate::theme::BLUE),
                     egui::StrokeKind::Inside,
                 );
             } else if let Some((id, index, points)) = &drag.route {
@@ -493,7 +497,7 @@ impl CanvasState {
             painter.circle_filled(
                 world_to_screen(*point, origin, d.view),
                 5.,
-                Color32::from_rgb(63, 111, 235),
+                crate::theme::BLUE,
             );
         }
         if self.guides && response.dragged_by(PointerButton::Primary) {
@@ -516,7 +520,7 @@ impl CanvasState {
                                     world_to_screen(pts[0], origin, d.view),
                                     world_to_screen(pts[1], origin, d.view),
                                 ],
-                                Stroke::new(1_f32, Color32::from_rgb(63, 111, 235)),
+                                Stroke::new(1_f32, crate::theme::BLUE),
                             );
                         }
                     }
@@ -534,7 +538,7 @@ impl CanvasState {
             let color = if valid.as_ref().is_some_and(Result::is_err) {
                 Color32::DARK_RED
             } else {
-                Color32::from_rgb(63, 111, 235)
+                crate::theme::BLUE
             };
             let start = crate::routing::anchor(node, w);
             painter.line_segment(
@@ -600,15 +604,15 @@ impl CanvasState {
                 );
                 painter.rect_stroke(
                     Rect::from_min_max(min, max).expand(4.),
-                    0.,
-                    Stroke::new(1.5_f32, Color32::from_rgb(63, 111, 235)),
+                    4.,
+                    Stroke::new(1.5_f32, crate::theme::BLUE),
                     egui::StrokeKind::Outside,
                 );
                 if d.nodes.iter().any(|n| n.id == *id) {
                     painter.rect_filled(
                         Rect::from_center_size(max, egui::vec2(9., 9.)),
                         1.,
-                        Color32::from_rgb(63, 111, 235),
+                        crate::theme::BLUE,
                     );
                 }
             } else {
@@ -620,10 +624,7 @@ impl CanvasState {
                                     world_to_screen(w[0], origin, d.view),
                                     world_to_screen(w[1], origin, d.view),
                                 ],
-                                Stroke::new(
-                                    3_f32,
-                                    Color32::from_rgba_unmultiplied(63, 111, 235, 120),
-                                ),
+                                Stroke::new(3_f32, crate::theme::BLUE.gamma_multiply(0.55)),
                             );
                         }
                     }
@@ -633,29 +634,24 @@ impl CanvasState {
         if let Some(id) = self.connection
             && let Some(r) = sc.boxes.get(&id)
         {
-            painter.circle_stroke(
-                world_to_screen(r.center(), origin, d.view),
-                15.,
-                Stroke::new(2_f32, Color32::from_rgb(229, 155, 49)),
+            painter.rect_stroke(
+                Rect::from_min_size(
+                    world_to_screen(r.pos, origin, d.view),
+                    egui::vec2(r.size.x, r.size.y) * d.view.zoom,
+                )
+                .expand(4.),
+                4.,
+                Stroke::new(2_f32, crate::theme::BLUE),
+                egui::StrokeKind::Outside,
             );
         }
         // Paint inside the canvas, without an interactive overlay that could eat clicks.
-        if matches!(*tool, Tool::Connect(_)) {
-            let reason = hover_reason.as_ref().or(self.notice.as_ref());
-            let text = reason
-                .map(String::as_str)
-                .unwrap_or(if self.connection.is_some() {
-                    "초록 테두리: 연결 가능한 도착 요소 · 시작 → 도착 클릭 또는 드래그 · Esc 취소"
-                } else {
-                    "초록 테두리: 선택 가능한 시작 요소 · 시작 요소를 선택하세요 · Esc 취소"
-                });
-            let color = if reason.is_some() {
-                Color32::from_rgb(160, 40, 40)
-            } else {
-                Color32::from_rgb(36, 95, 76)
-            };
+        if matches!(*tool, Tool::Connect(_))
+            && let Some(reason) = hover_reason.as_ref().or(self.notice.as_ref())
+        {
+            let color = crate::theme::ERROR;
             let galley = painter.layout(
-                text.into(),
+                reason.clone(),
                 egui::FontId::proportional(13.),
                 color,
                 (rect.width() - 40.).max(1.),
@@ -664,15 +660,7 @@ impl CanvasState {
                 rect.min + egui::vec2(8., 8.),
                 galley.size() + egui::vec2(24., 16.),
             );
-            painter.rect_filled(
-                banner,
-                6.,
-                if reason.is_some() {
-                    Color32::from_rgb(255, 235, 232)
-                } else {
-                    Color32::from_rgb(231, 245, 239)
-                },
-            );
+            painter.rect_filled(banner, 4., Color32::from_rgb(255, 239, 236));
             painter.galley(banner.min + egui::vec2(12., 8.), galley, color);
         }
         changed

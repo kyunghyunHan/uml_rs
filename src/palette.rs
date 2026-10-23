@@ -1,19 +1,5 @@
 use crate::{canvas::Tool, model::*};
 use eframe::egui::{self, Align2, Color32, FontId, Sense, Stroke};
-pub fn toolbar_style(ui: &mut egui::Ui) {
-    let spacing = ui.spacing_mut();
-    spacing.interact_size.y = 32.;
-    spacing.button_padding = egui::vec2(10., 6.);
-    spacing.item_spacing = egui::vec2(8., 8.);
-}
-
-pub fn toolbar_frame() -> egui::Frame {
-    egui::Frame::new()
-        .fill(Color32::from_rgb(247, 249, 252))
-        .inner_margin(egui::Margin::symmetric(8, 6))
-        .stroke(Stroke::new(1_f32, Color32::from_rgb(221, 226, 234)))
-}
-
 pub fn relation_label(diagram: DiagramKind, kind: RelationKind) -> String {
     let targets = match (diagram, kind) {
         (DiagramKind::UseCase, RelationKind::Association) => "액터 ↔ 유스케이스",
@@ -35,20 +21,23 @@ pub fn node_tool(ui: &mut egui::Ui, tool: &mut Tool, kind: NodeKind) {
             .size()
             .x
     }) + 48.;
-    let (rect, response) = ui.allocate_exact_size(egui::vec2(width, 32.), Sense::click());
+    let (rect, response) = ui.allocate_exact_size(
+        egui::vec2(width, crate::theme::CONTROL_HEIGHT),
+        Sense::click(),
+    );
     let selected = *tool == Tool::Add(kind);
     let color = if selected {
-        Color32::from_rgb(45, 83, 183)
+        crate::theme::BLUE_TEXT
     } else {
-        Color32::from_rgb(65, 73, 89)
+        crate::theme::TEXT
     };
     ui.painter().rect_filled(
         rect,
         4.,
         if selected {
-            Color32::from_rgb(222, 232, 255)
-        } else if response.hovered() {
-            Color32::from_gray(234)
+            crate::theme::BLUE_LIGHT
+        } else if response.hovered() || response.has_focus() {
+            crate::theme::HOVER
         } else {
             Color32::TRANSPARENT
         },
@@ -109,6 +98,14 @@ pub fn node_tool(ui: &mut egui::Ui, tool: &mut Tool, kind: NodeKind) {
         FontId::proportional(13.),
         color,
     );
+    response.widget_info(|| {
+        egui::WidgetInfo::selected(
+            egui::WidgetType::SelectableLabel,
+            ui.is_enabled(),
+            selected,
+            text,
+        )
+    });
     if response.clicked() {
         *tool = Tool::Add(kind);
         ui.close();
@@ -125,10 +122,30 @@ pub fn sequence_button(
     kind: usize,
     enabled: bool,
 ) -> egui::Response {
-    let response = ui.add_enabled(
-        enabled,
-        egui::Button::new(format!("     {label}")).min_size(egui::vec2(145., 32.)),
-    );
+    let response = ui
+        .add_enabled_ui(enabled, |ui| {
+            let (rect, response) = ui.allocate_exact_size(
+                egui::vec2(160., crate::theme::CONTROL_HEIGHT),
+                Sense::click(),
+            );
+            let visuals = ui.style().interact(&response);
+            ui.painter().rect(
+                rect,
+                4.,
+                visuals.weak_bg_fill,
+                visuals.bg_stroke,
+                egui::StrokeKind::Inside,
+            );
+            ui.painter().text(
+                rect.min + egui::vec2(36., 16.),
+                Align2::LEFT_CENTER,
+                label,
+                FontId::proportional(13.),
+                visuals.text_color(),
+            );
+            response
+        })
+        .inner;
     let c = response.rect.min + egui::vec2(16., 16.);
     let color = if enabled {
         ui.visuals().text_color()
@@ -172,5 +189,6 @@ pub fn sequence_button(
             );
         }
     }
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, enabled, label));
     response.on_hover_text(format!("{label}를 추가한 뒤 속성 패널에서 편집하세요"))
 }

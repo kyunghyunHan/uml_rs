@@ -138,6 +138,8 @@ UI 이미지는 OS 창 캡처가 아닌 **headless egui 렌더링**입니다. �
 
 [유스케이스 UI](docs/screenshots/usecase-headless.png) · [클래스 UI](docs/screenshots/class-headless.png) · [시퀀스 UI](docs/screenshots/sequence-headless.png) · [작은 화면 UI](docs/screenshots/small-headless.png)
 
+[UI 변경 파일·검증 결과와 추가 화면](docs/ui-review.md): 통합 탭, 공통 테마, 고정 높이 도구 영역, 속성 패널과 820×620 화면을 포함합니다.
+
 ## 구조
 
 - `model.rs`, `validation.rs`, `references.rs`: 데이터, UML 규칙, ID 연결/진단과 이름 반영

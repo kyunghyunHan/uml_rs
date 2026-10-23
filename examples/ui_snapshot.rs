@@ -37,14 +37,38 @@ fn main() {
             .map(|n| n.id),
         _ => p.diagrams[0].sequence.fragments.first().map(|f| f.id),
     };
+    if args.iter().any(|a| a == "--long-names") {
+        for d in &mut p.diagrams {
+            d.name = format!("{} · 긴 다이어그램 이름과 상세 설계 검토", d.name);
+        }
+    }
+    let tab_elements: Vec<_> = p
+        .diagrams
+        .iter()
+        .filter_map(|d| {
+            d.nodes
+                .first()
+                .map(|n| n.id)
+                .or_else(|| d.sequence.participants.first().map(|n| n.id))
+        })
+        .collect();
     app.project = Some(p);
-    if !small && let Some(id) = selected {
+    for id in tab_elements {
+        app.inspect_element(id);
+    }
+    if let Some(id) = selected {
         app.inspect_element(id);
     }
     let mut frame = eframe::Frame::_new_kittest();
     let mut textures = HashMap::new();
     let mut shapes = vec![];
     for tick in 0..12 {
+        if tick == 2
+            && args.iter().any(|a| a == "--inspector")
+            && let Some(id) = selected
+        {
+            app.inspect_element(id);
+        }
         let output = ctx.run(
             egui::RawInput {
                 screen_rect: Some(egui::Rect::from_min_size(
