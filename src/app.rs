@@ -6,7 +6,7 @@ use crate::{
     scene::{self, ExportOptions},
     storage::{self, Preferences},
 };
-use eframe::egui::{self, Color32, Key, RichText};
+use eframe::egui::{self, Key, RichText};
 use std::{
     path::PathBuf,
     time::{Duration, Instant},
@@ -18,7 +18,7 @@ enum Action {
     Home,
     Quit,
     Example,
-    Recover,
+    Recover(PathBuf),
 }
 pub struct UmlApp {
     pub project: Option<Project>,
@@ -44,7 +44,9 @@ pub struct UmlApp {
     export_options: ExportOptions,
     transaction: Option<Project>,
     last_recovery: Instant,
-    recovery_available: bool,
+    recovery: storage::RecoveryStore,
+    recovery_candidates: Vec<PathBuf>,
+    revision: Option<storage::FileRevision>,
     canvas_size: egui::Vec2,
     suppress_history: bool,
     blocked: bool,
@@ -77,7 +79,10 @@ impl UmlApp {
             .or_default()
             .insert(0, "korean".into());
         cc.egui_ctx.set_fonts(fonts);
-        crate::theme::apply(&cc.egui_ctx);
+        let prefs = Preferences::load();
+        crate::theme::apply_mode(&cc.egui_ctx, prefs.dark_mode);
+        let recovery = storage::RecoveryStore::new(storage::config_dir());
+        let recovery_candidates = recovery.candidates();
         Self {
             project: None,
             saved: None,
@@ -88,7 +93,7 @@ impl UmlApp {
             clipboard: Clipboard::default(),
             canvas: CanvasState::new(),
             tool: Tool::Select,
-            prefs: Preferences::load(),
+            prefs,
             status: "준비됨".into(),
             error: None,
             pending: None,
@@ -102,7 +107,9 @@ impl UmlApp {
             export_options: ExportOptions::default(),
             transaction: None,
             last_recovery: Instant::now(),
-            recovery_available: storage::config_dir().join("recovery.umlproj").exists(),
+            recovery,
+            recovery_candidates,
+            revision: None,
             canvas_size: egui::vec2(800., 600.),
             suppress_history: false,
             blocked: false,
@@ -168,6 +175,8 @@ impl UmlApp {
         self.saved = if clean { Some(p.clone()) } else { None };
         self.project = Some(p);
         self.path = path;
+        self.revision = None;
+        self.last_recovery = Instant::now();
         self.history = History::default();
         self.transaction = None;
         self.canvas.clear();
@@ -191,14 +200,19 @@ impl UmlApp {
             self.path.clone()
         };
         if let Some(path) = path {
-            match storage::save(&path, self.project.as_ref().unwrap()) {
-                Ok(()) => {
+            let expected = (self.path.as_ref() == Some(&path))
+                .then_some(self.revision.as_ref())
+                .flatten();
+            match storage::save_tracked(&path, self.project.as_ref().unwrap(), expected) {
+                Ok(revision) => {
+                    self.revision = Some(revision);
                     self.saved = self.project.clone();
                     self.path = Some(path.clone());
                     self.prefs.remember(&path);
                     self.status = format!("저장됨 · {}", path.display());
-                    let _ = std::fs::remove_file(storage::config_dir().join("recovery.umlproj"));
-                    self.recovery_available = false;
+                    if let Err(e) = self.recovery.clear() {
+                        self.error = Some(e);
+                    }
                     true
                 }
                 Err(e) => {
@@ -229,23 +243,31 @@ impl UmlApp {
                 ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             }
             Action::Example => self.replace(example_project(), None, false),
-            Action::Open(path) => match storage::load(&path) {
-                Ok(p) => {
+            Action::Open(path) => match storage::load_tracked(&path) {
+                Ok((p, revision)) => {
                     self.replace(p, Some(path.clone()), true);
+                    self.revision = Some(revision);
                     self.prefs.remember(&path);
                     self.status = "프로젝트를 열었습니다".into();
                 }
                 Err(e) => self.error = Some(e),
             },
-            Action::Recover => match storage::load(&storage::config_dir().join("recovery.umlproj"))
-            {
-                Ok(p) => {
-                    self.replace(p, None, false);
-                    self.recovery_available = false;
-                    self.status = "복구됨 · 다른 이름으로 저장하세요".into();
+            Action::Recover(path) => {
+                match storage::load(&path) {
+                    Ok(p) => {
+                        // Secure a session-owned copy before releasing the source snapshot.
+                        match self.recovery.save(&p) {
+                            Ok(()) => {
+                                self.replace(p, None, false);
+                                self.recovery_candidates.retain(|p| p != &path);
+                                self.status = "복구됨 · 원본 복구 사본도 유지됩니다. 다른 이름으로 저장하세요".into();
+                            }
+                            Err(e) => self.error = Some(e),
+                        }
+                    }
+                    Err(e) => self.error = Some(e),
                 }
-                Err(e) => self.error = Some(e),
-            },
+            }
         }
     }
     fn open(&mut self, ctx: &egui::Context) {
@@ -336,7 +358,7 @@ impl UmlApp {
     }
     fn toolbar(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("toolbar")
-            .frame(crate::theme::toolbar_frame())
+            .frame(crate::theme::toolbar_frame(ctx))
             .show(ctx, |ui| {
                 if self.blocked {
                     ui.disable();
@@ -345,7 +367,7 @@ impl UmlApp {
                     ui.label(
                         RichText::new("UML STUDIO")
                             .strong()
-                            .color(Color32::from_rgb(47, 79, 172)),
+                            .color(crate::theme::ui_color(ui, crate::theme::BLUE_TEXT)),
                     );
                     ui.separator();
                     egui::containers::menu::MenuButton::from_button(
@@ -380,6 +402,14 @@ impl UmlApp {
                         ui.checkbox(&mut self.show_project, "프로젝트 패널");
                         ui.checkbox(&mut self.show_properties, "속성 패널");
                         ui.checkbox(&mut self.show_diagnostics, "진단 패널");
+                        ui.separator();
+                        if ui
+                            .checkbox(&mut self.prefs.dark_mode, "다크 테마")
+                            .changed()
+                        {
+                            crate::theme::apply_mode(ctx, self.prefs.dark_mode);
+                            self.prefs.persist();
+                        }
                     });
                     let has = self.project.is_some();
                     if ui.add_enabled(has, egui::Button::new("저장")).clicked() {
@@ -427,7 +457,7 @@ impl UmlApp {
                 });
             });
         egui::TopBottomPanel::bottom("status")
-            .frame(crate::theme::toolbar_frame())
+            .frame(crate::theme::toolbar_frame(ctx))
             .show(ctx, |ui| {
                 if self.blocked {
                     ui.disable();
@@ -456,6 +486,7 @@ impl UmlApp {
             if self.blocked {
                 ui.disable();
             }
+            egui::ScrollArea::vertical().show(ui, |ui| {
             ui.vertical_centered(|ui| {
                 ui.add_space(70.);
                 ui.heading(RichText::new("UML Studio").size(40.));
@@ -472,19 +503,20 @@ impl UmlApp {
                     self.perform(Action::Example, ctx);
                 }
                 ui.add_space(25.);
-                if self.recovery_available {
-                    ui.group(|ui| {
-                        ui.label("자동 복구 파일이 있습니다");
-                        if ui.button("복구하기").clicked() {
-                            self.perform(Action::Recover, ctx);
-                        }
-                        if ui.button("복구 파일 버리기").clicked() {
-                            let _ = std::fs::remove_file(
-                                storage::config_dir().join("recovery.umlproj"),
-                            );
-                            self.recovery_available = false;
-                        }
-                    });
+                for path in self.recovery_candidates.clone() {
+                    ui.push_id(&path, |ui| { ui.group(|ui| {
+                        ui.label("자동 복구 사본 (실행 중인 다른 창의 사본일 수도 있습니다)");
+                        ui.small(path.file_name().unwrap_or_default().to_string_lossy());
+                        ui.horizontal(|ui| {
+                            if ui.button("복구하기").clicked() { self.perform(Action::Recover(path.clone()), ctx); }
+                            if ui.button("복구 파일 버리기").clicked() {
+                                match storage::RecoveryStore::discard(&path) {
+                                    Ok(()) => self.recovery_candidates.retain(|p| p != &path),
+                                    Err(e) => self.error = Some(e),
+                                }
+                            }
+                        });
+                    }); });
                 }
                 ui.heading("최근 프로젝트");
                 for path in self.prefs.recent.clone() {
@@ -492,6 +524,7 @@ impl UmlApp {
                         self.perform(Action::Open(path), ctx);
                     }
                 }
+            });
             });
         });
     }
@@ -544,7 +577,7 @@ impl UmlApp {
                 .default_width(220.)
                 .min_width(190.)
                 .max_width(320.)
-                .frame(crate::theme::panel_frame())
+                .frame(crate::theme::panel_frame(ctx))
                 .show(ctx, |ui| {
                     if self.blocked {
                         ui.disable();
@@ -736,7 +769,7 @@ impl UmlApp {
             egui::SidePanel::right("properties")
                 .default_width(310.)
                 .width_range(260_f32.min(max_width)..=max_width)
-                .frame(crate::theme::panel_frame())
+                .frame(crate::theme::panel_frame(ctx))
                 .show(ctx, |ui| {
                     if self.blocked {
                         ui.disable();
@@ -767,7 +800,7 @@ impl UmlApp {
                 });
         }
         egui::CentralPanel::default()
-            .frame(egui::Frame::new().fill(crate::theme::PANEL))
+            .frame(egui::Frame::new().fill(ctx.style().visuals.panel_fill))
             .show(ctx, |ui| {
                 if self.blocked {
                     ui.disable();
@@ -871,7 +904,7 @@ impl UmlApp {
                 if !self.tabs.contains(&d.id) {
                     self.tabs.push(d.id);
                 }
-                crate::theme::toolbar_frame().show(ui, |ui| {
+                crate::theme::toolbar_frame(ctx).show(ui, |ui| {
                     ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
                     ui.horizontal(|ui| {
                         ui.selectable_value(&mut self.tool, Tool::Select, "선택");
@@ -1219,7 +1252,7 @@ impl UmlApp {
                                             self.preview_key = svg;
                                         }
                                         Err(e) => {
-                                            ui.colored_label(Color32::DARK_RED, e);
+                                            ui.colored_label(ui.visuals().error_fg_color, e);
                                         }
                                     }
                                 }
@@ -1228,7 +1261,7 @@ impl UmlApp {
                                 }
                             }
                             Err(e) => {
-                                ui.colored_label(Color32::DARK_RED, e);
+                                ui.colored_label(ui.visuals().error_fg_color, e);
                             }
                         }
                     }
@@ -1286,9 +1319,9 @@ impl UmlApp {
                         }
                         if ui.button("변경 버리기").clicked() {
                             let a = self.pending.take().unwrap();
-                            let _ = std::fs::remove_file(
-                                storage::config_dir().join("recovery.umlproj"),
-                            );
+                            if let Err(e) = self.recovery.clear() {
+                                self.error = Some(e);
+                            }
                             self.perform(a, ctx);
                         }
                         if ui.button("취소").clicked() {
@@ -1346,12 +1379,14 @@ impl eframe::App for UmlApp {
         if let Some(p) = &mut self.project {
             p.synchronize_links();
             for d in &mut p.diagrams {
-                for n in &mut d.nodes {
-                    n.reflow();
-                }
                 let old = before
                     .as_ref()
                     .and_then(|p| p.diagrams.iter().find(|old| old.id == d.id));
+                for (i, n) in d.nodes.iter_mut().enumerate() {
+                    if old.and_then(|d| d.nodes.get(i)) != Some(n) {
+                        n.reflow();
+                    }
+                }
                 if d.sequence.auto_activate
                     && old.is_none_or(|old| {
                         old.sequence.messages != d.sequence.messages
@@ -1386,9 +1421,12 @@ impl eframe::App for UmlApp {
         if !ctx.input(|i| i.pointer.primary_down()) && !ctx.wants_keyboard_input() {
             self.commit();
         }
-        if self.dirty() && self.last_recovery.elapsed() > Duration::from_secs(20) {
+        if !self.allow_close
+            && self.dirty()
+            && self.last_recovery.elapsed() > Duration::from_secs(20)
+        {
             if let Some(p) = &self.project {
-                match storage::save_recovery(&storage::config_dir().join("recovery.umlproj"), p) {
+                match self.recovery.save(p) {
                     Ok(()) => self.status = "자동 복구 사본 저장됨 (프로젝트 저장은 별도)".into(),
                     Err(e) => self.status = e,
                 }
@@ -1587,6 +1625,37 @@ mod tests {
             ..Default::default()
         }
     }
+    #[test]
+    fn app_save_conflict_keeps_dirty_work_and_recovery_and_other_sessions() {
+        let dir = tempfile::tempdir().unwrap();
+        let ctx = egui::Context::default();
+        let mut app = UmlApp::new(&eframe::CreationContext::_new_kittest(ctx.clone()));
+        app.recovery = storage::RecoveryStore::new(dir.path().into());
+        let other = storage::RecoveryStore::new(dir.path().into());
+        let path = dir.path().join("project.umlproj");
+        let original = example_project();
+        storage::save(&path, &original).unwrap();
+        app.perform(Action::Open(path.clone()), &ctx);
+        app.project.as_mut().unwrap().name = "local edit".into();
+        app.recovery.save(app.project.as_ref().unwrap()).unwrap();
+        other.save(&original).unwrap();
+        let mut external = original.clone();
+        external.name = "external edit".into();
+        storage::save(&path, &external).unwrap();
+        assert!(!app.save(false));
+        assert!(app.dirty());
+        assert!(app.error.as_ref().unwrap().contains("변경"));
+        assert_eq!(storage::load(&path).unwrap().name, "external edit");
+        assert_eq!(other.candidates().len(), 1);
+        // Reload the latest revision, then save a new local edit successfully.
+        app.perform(Action::Open(path.clone()), &ctx);
+        app.project.as_mut().unwrap().name = "merged".into();
+        assert!(app.save(false));
+        assert!(!app.dirty());
+        assert_eq!(app.recovery.candidates().len(), 1);
+        assert!(other.candidates().is_empty());
+    }
+
     #[test]
     fn app_undo_does_not_record_itself_and_redo_survives_next_frame() {
         let ctx = egui::Context::default();

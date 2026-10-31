@@ -380,7 +380,7 @@ pub fn properties(
         ui.label(
             egui::RichText::new(n.kind.label())
                 .strong()
-                .color(crate::theme::BLUE_TEXT),
+                .color(crate::theme::ui_color(ui, crate::theme::BLUE_TEXT)),
         );
         crate::components::field_label(
             ui,
@@ -487,7 +487,7 @@ pub fn properties(
                 && crate::text_layout::class_layout(n, Some(n.layout.size.x)).overflow
             {
                 ui.colored_label(
-                    egui::Color32::from_rgb(173, 76, 30),
+                    ui.visuals().warn_fg_color,
                     "텍스트가 상자 높이를 넘습니다. 높이를 늘리거나 내용에 크기를 맞추세요.",
                 );
             }
@@ -500,7 +500,7 @@ pub fn properties(
         ui.label(
             egui::RichText::new("관계 설정")
                 .strong()
-                .color(crate::theme::BLUE_TEXT),
+                .color(crate::theme::ui_color(ui, crate::theme::BLUE_TEXT)),
         );
         crate::components::field_label(ui, "관계 종류");
         egui::ComboBox::from_id_salt("relation-kind")

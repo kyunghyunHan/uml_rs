@@ -28,6 +28,9 @@ fn main() {
     let (width, height) = if small { (820, 620) } else { (1440, 900) };
     let ctx = egui::Context::default();
     let mut app = uml_studio::app::UmlApp::new(&eframe::CreationContext::_new_kittest(ctx.clone()));
+    if args.iter().any(|a| a == "--dark") {
+        uml_studio::theme::apply_mode(&ctx, true);
+    }
     let mut p = if args.iter().any(|a| a == "--relations") {
         uml_studio::demo::relationship_review_project()
     } else {

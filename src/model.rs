@@ -883,10 +883,14 @@ impl Project {
                 if [r.source_port, r.target_port]
                     .iter()
                     .any(|p| !p.offset.is_finite() || !(0.0..=1.).contains(&p.offset))
-                    || r.bend.is_some_and(|v| !v.is_finite())
-                    || r.waypoints
-                        .iter()
-                        .any(|p| !p.x.is_finite() || !p.y.is_finite())
+                    || r.bend
+                        .is_some_and(|v| !v.is_finite() || v.abs() > 1_000_000.)
+                    || r.waypoints.iter().any(|p| {
+                        !p.x.is_finite()
+                            || !p.y.is_finite()
+                            || p.x.abs() > 1_000_000.
+                            || p.y.abs() > 1_000_000.
+                    })
                 {
                     return Err("연결선의 참조/경로가 올바르지 않습니다".into());
                 }

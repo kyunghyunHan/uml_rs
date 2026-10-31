@@ -1,0 +1,214 @@
+name,version,license,repository,rust_version
+ab_glyph,0.2.32,Apache-2.0,https://github.com/alexheretic/ab-glyph,
+ab_glyph_rasterizer,0.1.10,Apache-2.0,https://github.com/alexheretic/ab-glyph,
+adler2,2.0.1,0BSD OR MIT OR Apache-2.0,https://github.com/oyvindln/adler2,
+ahash,0.8.12,MIT OR Apache-2.0,https://github.com/tkaitchuck/ahash,1.60.0
+arboard,3.7.0,MIT OR Apache-2.0,https://github.com/1Password/arboard,1.71.0
+arrayref,0.3.9,BSD-2-Clause,https://github.com/droundy/arrayref,
+arrayvec,0.7.8,MIT OR Apache-2.0,https://github.com/bluss/arrayvec,1.51
+autocfg,1.4.0,Apache-2.0 OR MIT,https://github.com/cuviper/autocfg,1.0
+base64,0.22.1,MIT OR Apache-2.0,https://github.com/marshallpierce/rust-base64,1.48.0
+bit-set,0.8.0,Apache-2.0 OR MIT,https://github.com/contain-rs/bit-set,
+bit-vec,0.8.0,Apache-2.0 OR MIT,https://github.com/contain-rs/bit-vec,
+bitflags,1.3.2,MIT/Apache-2.0,https://github.com/bitflags/bitflags,
+bitflags,2.13.2,MIT OR Apache-2.0,https://github.com/bitflags/bitflags,1.56.0
+block2,0.5.1,MIT,https://github.com/madsmtm/objc2,1.60
+block2,0.6.2,MIT,https://github.com/madsmtm/objc2,1.71
+bytemuck,1.25.2,Zlib OR Apache-2.0 OR MIT,https://github.com/Lokathor/bytemuck,
+bytemuck_derive,1.12.1,Zlib OR Apache-2.0 OR MIT,https://github.com/Lokathor/bytemuck,1.71
+byteorder-lite,0.1.0,Unlicense OR MIT,https://github.com/image-rs/byteorder-lite,1.60
+cfg-if,1.0.0,MIT/Apache-2.0,https://github.com/alexcrichton/cfg-if,
+cfg_aliases,0.2.2,MIT,https://github.com/katharostech/cfg_aliases,
+cgl,0.3.2,MIT / Apache-2.0,https://github.com/servo/cgl-rs,
+codespan-reporting,0.12.0,Apache-2.0,https://github.com/brendanzab/codespan,1.67
+color_quant,1.1.0,MIT,https://github.com/image-rs/color_quant.git,
+core-foundation,0.9.4,MIT OR Apache-2.0,https://github.com/servo/core-foundation-rs,
+core-foundation-sys,0.8.7,MIT OR Apache-2.0,https://github.com/servo/core-foundation-rs,
+core-graphics,0.23.2,MIT OR Apache-2.0,https://github.com/servo/core-foundation-rs,
+core-graphics-types,0.1.3,MIT OR Apache-2.0,https://github.com/servo/core-foundation-rs,
+core_maths,0.1.1,MIT,https://github.com/robertbastian/core_maths,
+crc32fast,1.5.3,MIT OR Apache-2.0,https://github.com/srijs/rust-crc32fast,1.63
+cursor-icon,1.2.0,MIT OR Apache-2.0 OR Zlib,https://github.com/rust-windowing/cursor-icon,1.65.0
+data-url,0.3.2,MIT OR Apache-2.0,https://github.com/servo/rust-url,1.51
+dispatch,0.2.0,MIT,http://github.com/SSheldon/rust-dispatch,
+dispatch2,0.3.1,Zlib OR Apache-2.0 OR MIT,https://github.com/madsmtm/objc2,1.71
+displaydoc,0.2.5,MIT OR Apache-2.0,https://github.com/yaahc/displaydoc,1.56.0
+document-features,0.2.12,MIT OR Apache-2.0,https://github.com/slint-ui/document-features,1.56
+dpi,0.1.2,Apache-2.0 AND MIT,https://github.com/rust-windowing/winit,1.73
+ecolor,0.33.3,MIT OR Apache-2.0,https://github.com/emilk/egui,1.88
+eframe,0.33.3,MIT OR Apache-2.0,https://github.com/emilk/egui/tree/main/crates/eframe,1.88
+egui,0.33.3,MIT OR Apache-2.0,https://github.com/emilk/egui,1.88
+egui-wgpu,0.33.3,MIT OR Apache-2.0,https://github.com/emilk/egui/tree/main/crates/egui-wgpu,1.88
+egui-winit,0.33.3,MIT OR Apache-2.0,https://github.com/emilk/egui/tree/main/crates/egui-winit,1.88
+egui_glow,0.33.3,MIT OR Apache-2.0,https://github.com/emilk/egui/tree/main/crates/egui_glow,1.88
+emath,0.33.3,MIT OR Apache-2.0,https://github.com/emilk/egui/tree/main/crates/emath,1.88
+epaint,0.33.3,MIT OR Apache-2.0,https://github.com/emilk/egui/tree/main/crates/epaint,1.88
+epaint_default_fonts,0.33.3,(MIT OR Apache-2.0) AND OFL-1.1 AND Ubuntu-font-1.0,https://github.com/emilk/egui/tree/main/crates/epaint_default_fonts,1.88
+equivalent,1.0.1,Apache-2.0 OR MIT,https://github.com/cuviper/equivalent,1.6
+errno,0.3.14,MIT OR Apache-2.0,https://github.com/lambda-fairy/rust-errno,1.56
+euclid,0.22.14,MIT OR Apache-2.0,https://github.com/servo/euclid,1.63.0
+fastrand,2.5.0,Apache-2.0 OR MIT,https://github.com/smol-rs/fastrand,1.63
+fax,0.2.7,MIT,https://github.com/pdf-rs/fax,1.71
+fdeflate,0.3.7,MIT OR Apache-2.0,https://github.com/image-rs/fdeflate,1.67.0
+flate2,1.1.10,MIT OR Apache-2.0,https://github.com/rust-lang/flate2-rs,1.67.0
+float-cmp,0.9.0,MIT,https://github.com/mikedilger/float-cmp,
+foldhash,0.2.0,Zlib,https://github.com/orlp/foldhash,1.60
+fontdb,0.23.0,MIT,https://github.com/RazrFalcon/fontdb,1.60
+foreign-types,0.5.0,MIT/Apache-2.0,https://github.com/sfackler/foreign-types,
+foreign-types-macros,0.2.4,MIT/Apache-2.0,https://github.com/sfackler/foreign-types,
+foreign-types-shared,0.3.1,MIT/Apache-2.0,https://github.com/sfackler/foreign-types,
+form_urlencoded,1.2.1,MIT OR Apache-2.0,https://github.com/servo/rust-url,1.51
+getrandom,0.3.1,MIT OR Apache-2.0,https://github.com/rust-random/getrandom,1.63
+gif,0.13.3,MIT OR Apache-2.0,https://github.com/image-rs/image-gif,1.62
+glow,0.16.0,MIT OR Apache-2.0 OR Zlib,https://github.com/grovesNL/glow,
+glutin,0.32.3,Apache-2.0,https://github.com/rust-windowing/glutin,1.71.0
+glutin-winit,0.5.0,MIT,https://github.com/rust-windowing/glutin,1.70.0
+half,2.7.1,MIT OR Apache-2.0,https://github.com/VoidStarKat/half-rs,1.81
+hashbrown,0.16.1,MIT OR Apache-2.0,https://github.com/rust-lang/hashbrown,1.65.0
+hashbrown,0.17.1,MIT OR Apache-2.0,https://github.com/rust-lang/hashbrown,1.85.0
+hexf-parse,0.2.1,CC0-1.0,https://github.com/lifthrasiir/hexf,
+icu_collections,1.5.0,Unicode-3.0,https://github.com/unicode-org/icu4x,1.67
+icu_locid,1.5.0,Unicode-3.0,https://github.com/unicode-org/icu4x,1.67
+icu_locid_transform,1.5.0,Unicode-3.0,https://github.com/unicode-org/icu4x,1.67
+icu_locid_transform_data,1.5.0,Unicode-3.0,https://github.com/unicode-org/icu4x,1.67
+icu_normalizer,1.5.0,Unicode-3.0,https://github.com/unicode-org/icu4x,1.67
+icu_normalizer_data,1.5.0,Unicode-3.0,https://github.com/unicode-org/icu4x,1.67
+icu_properties,1.5.1,Unicode-3.0,https://github.com/unicode-org/icu4x,1.67
+icu_properties_data,1.5.0,Unicode-3.0,https://github.com/unicode-org/icu4x,1.67
+icu_provider,1.5.0,Unicode-3.0,https://github.com/unicode-org/icu4x,1.67
+icu_provider_macros,1.5.0,Unicode-3.0,https://github.com/unicode-org/icu4x,1.67
+idna,1.0.3,MIT OR Apache-2.0,https://github.com/servo/rust-url/,1.57
+idna_adapter,1.2.0,Apache-2.0 OR MIT,https://github.com/hsivonen/idna_adapter,1.67.0
+image,0.25.10,MIT OR Apache-2.0,https://github.com/image-rs/image,1.88.0
+image-webp,0.2.4,MIT OR Apache-2.0,https://github.com/image-rs/image-webp,1.80.1
+imagesize,0.13.0,MIT,https://github.com/Roughsketch/imagesize,
+indexmap,2.14.2,Apache-2.0 OR MIT,https://github.com/indexmap-rs/indexmap,1.85
+itoa,1.0.14,MIT OR Apache-2.0,https://github.com/dtolnay/itoa,1.36
+kurbo,0.11.3,Apache-2.0 OR MIT,https://github.com/linebender/kurbo,1.65
+libc,0.2.191,MIT OR Apache-2.0,https://github.com/rust-lang/libc,1.65
+libloading,0.8.9,ISC,https://github.com/nagisa/rust_libloading/,1.71.0
+libm,0.2.16,MIT,https://github.com/rust-lang/compiler-builtins,1.63
+litemap,0.7.4,Unicode-3.0,https://github.com/unicode-org/icu4x,1.71.1
+litrs,1.0.1,MIT OR Apache-2.0,https://github.com/LukasKalbertodt/litrs,1.56
+lock_api,0.4.14,MIT OR Apache-2.0,https://github.com/Amanieu/parking_lot,1.71.0
+log,0.4.34,MIT OR Apache-2.0,https://github.com/rust-lang/log,1.71.0
+memchr,2.7.4,Unlicense OR MIT,https://github.com/BurntSushi/memchr,1.61
+memmap2,0.9.12,MIT OR Apache-2.0,https://github.com/RazrFalcon/memmap2-rs,1.65
+memoffset,0.9.1,MIT,https://github.com/Gilnaa/memoffset,
+miniz_oxide,0.8.9,MIT OR Zlib OR Apache-2.0,https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide,
+miniz_oxide,0.9.1,MIT OR Zlib OR Apache-2.0,https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide,
+moxcms,0.8.1,BSD-3-Clause OR Apache-2.0,https://github.com/awxkee/moxcms.git,1.85.0
+naga,27.0.3,MIT OR Apache-2.0,https://github.com/gfx-rs/wgpu,1.82.0
+nohash-hasher,0.2.0,Apache-2.0 OR MIT,https://github.com/paritytech/nohash-hasher,
+num-traits,0.2.19,MIT OR Apache-2.0,https://github.com/rust-num/num-traits,1.60
+objc-sys,0.3.5,MIT,https://github.com/madsmtm/objc2,1.60
+objc2,0.5.3,MIT,https://github.com/madsmtm/objc2,1.60
+objc2,0.6.5,MIT,https://github.com/madsmtm/objc2,1.71
+objc2-app-kit,0.2.2,MIT,https://github.com/madsmtm/objc2,1.60
+objc2-app-kit,0.3.2,Zlib OR Apache-2.0 OR MIT,https://github.com/madsmtm/objc2,1.71
+objc2-core-data,0.2.2,MIT,https://github.com/madsmtm/objc2,1.60
+objc2-core-foundation,0.3.2,Zlib OR Apache-2.0 OR MIT,https://github.com/madsmtm/objc2,1.71
+objc2-core-graphics,0.3.2,Zlib OR Apache-2.0 OR MIT,https://github.com/madsmtm/objc2,1.71
+objc2-core-image,0.2.2,MIT,https://github.com/madsmtm/objc2,1.60
+objc2-encode,4.1.0,MIT,https://github.com/madsmtm/objc2,1.71
+objc2-foundation,0.2.2,MIT,https://github.com/madsmtm/objc2,1.60
+objc2-foundation,0.3.2,MIT,https://github.com/madsmtm/objc2,1.71
+objc2-io-surface,0.3.2,Zlib OR Apache-2.0 OR MIT,https://github.com/madsmtm/objc2,1.71
+objc2-metal,0.2.2,MIT,https://github.com/madsmtm/objc2,1.60
+objc2-quartz-core,0.2.2,MIT,https://github.com/madsmtm/objc2,1.60
+once_cell,1.21.4,MIT OR Apache-2.0,https://github.com/matklad/once_cell,1.65
+owned_ttf_parser,0.25.1,Apache-2.0,https://github.com/alexheretic/owned-ttf-parser,
+parking_lot,0.12.5,MIT OR Apache-2.0,https://github.com/Amanieu/parking_lot,1.71
+parking_lot_core,0.9.12,MIT OR Apache-2.0,https://github.com/Amanieu/parking_lot,1.71.0
+percent-encoding,2.3.2,MIT OR Apache-2.0,https://github.com/servo/rust-url/,1.51
+pico-args,0.5.0,MIT,https://github.com/RazrFalcon/pico-args,
+pin-project-lite,0.2.16,Apache-2.0 OR MIT,https://github.com/taiki-e/pin-project-lite,1.37
+png,0.17.16,MIT OR Apache-2.0,https://github.com/image-rs/image-png,1.57
+png,0.18.1,MIT OR Apache-2.0,https://github.com/image-rs/image-png,1.73
+proc-macro2,1.0.93,MIT OR Apache-2.0,https://github.com/dtolnay/proc-macro2,1.56
+profiling,1.0.18,MIT OR Apache-2.0,https://github.com/aclysma/profiling,1.60
+pxfm,0.1.30,BSD-3-Clause OR Apache-2.0,https://github.com/awxkee/pxfm,1.85
+quick-error,2.0.1,MIT/Apache-2.0,http://github.com/tailhook/quick-error,
+quote,1.0.38,MIT OR Apache-2.0,https://github.com/dtolnay/quote,1.56
+raw-window-handle,0.6.2,MIT OR Apache-2.0 OR Zlib,https://github.com/rust-windowing/raw-window-handle,1.64
+renderdoc-sys,1.1.0,MIT OR Apache-2.0,https://github.com/ebkalderon/renderdoc-rs,
+resvg,0.45.1,Apache-2.0 OR MIT,https://github.com/linebender/resvg,1.67.1
+rfd,0.15.4,MIT,https://github.com/PolyMeilex/rfd,
+rgb,0.8.53,MIT,https://github.com/kornelski/rust-rgb,1.64
+roxmltree,0.20.0,MIT OR Apache-2.0,https://github.com/RazrFalcon/roxmltree,1.60
+rustc-hash,1.1.0,Apache-2.0/MIT,https://github.com/rust-lang-nursery/rustc-hash,
+rustc-hash,2.1.1,Apache-2.0 OR MIT,https://github.com/rust-lang/rustc-hash,
+rustix,1.1.5,Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT,https://github.com/bytecodealliance/rustix,1.65
+rustybuzz,0.20.1,MIT,https://github.com/harfbuzz/rustybuzz,
+ryu,1.0.19,Apache-2.0 OR BSL-1.0,https://github.com/dtolnay/ryu,1.36
+scopeguard,1.2.0,MIT OR Apache-2.0,https://github.com/bluss/scopeguard,
+serde,1.0.229,MIT OR Apache-2.0,https://github.com/serde-rs/serde,1.56
+serde_core,1.0.229,MIT OR Apache-2.0,https://github.com/serde-rs/serde,1.56
+serde_derive,1.0.229,MIT OR Apache-2.0,https://github.com/serde-rs/serde,1.71
+serde_json,1.0.138,MIT OR Apache-2.0,https://github.com/serde-rs/json,1.56
+simd-adler32,0.3.10,MIT,https://github.com/mcountryman/simd-adler32,
+simplecss,0.2.2,Apache-2.0 OR MIT,https://github.com/linebender/simplecss,1.65
+siphasher,1.0.4,MIT OR Apache-2.0,https://github.com/jedisct1/rust-siphash,
+slotmap,1.0.7,Zlib,https://github.com/orlp/slotmap,
+smallvec,1.16.3,MIT OR Apache-2.0,https://github.com/servo/rust-smallvec,
+smol_str,0.2.2,MIT OR Apache-2.0,https://github.com/rust-analyzer/smol_str,
+stable_deref_trait,1.2.0,MIT/Apache-2.0,https://github.com/storyyeller/stable_deref_trait,
+static_assertions,1.1.0,MIT OR Apache-2.0,https://github.com/nvzqz/static-assertions-rs,
+strict-num,0.1.1,MIT,https://github.com/RazrFalcon/strict-num,
+svgtypes,0.15.3,Apache-2.0 OR MIT,https://github.com/linebender/svgtypes,1.65
+syn,2.0.98,MIT OR Apache-2.0,https://github.com/dtolnay/syn,1.61
+syn,3.0.9,MIT OR Apache-2.0,https://github.com/dtolnay/syn,1.71
+synstructure,0.13.1,MIT,https://github.com/mystor/synstructure,
+tempfile,3.27.0,MIT OR Apache-2.0,https://github.com/Stebalien/tempfile,1.63
+thiserror,2.0.21,MIT OR Apache-2.0,https://github.com/dtolnay/thiserror,1.77
+thiserror-impl,2.0.21,MIT OR Apache-2.0,https://github.com/dtolnay/thiserror,1.77
+tiff,0.11.3,MIT,https://github.com/image-rs/image-tiff,1.85.0
+tiny-skia,0.11.4,BSD-3-Clause,https://github.com/RazrFalcon/tiny-skia,
+tiny-skia-path,0.11.4,BSD-3-Clause,https://github.com/RazrFalcon/tiny-skia/tree/master/path,
+tinystr,0.7.6,Unicode-3.0,https://github.com/unicode-org/icu4x,1.67
+tinyvec,1.13.3,Zlib OR Apache-2.0 OR MIT,https://github.com/Lokathor/tinyvec,
+tracing,0.1.44,MIT,https://github.com/tokio-rs/tracing,1.65.0
+tracing-attributes,0.1.31,MIT,https://github.com/tokio-rs/tracing,1.65.0
+tracing-core,0.1.36,MIT,https://github.com/tokio-rs/tracing,1.65.0
+ttf-parser,0.25.1,MIT OR Apache-2.0,https://github.com/harfbuzz/ttf-parser,1.63.0
+type-map,0.5.1,MIT/Apache-2.0,https://github.com/kardeiz/type-map,
+uml-studio,0.1.0,UNSPECIFIED,,1.88
+unicode-bidi,0.3.18,MIT OR Apache-2.0,https://github.com/servo/unicode-bidi,1.47.0
+unicode-bidi-mirroring,0.4.0,MIT/Apache-2.0,https://github.com/RazrFalcon/unicode-bidi-mirroring,
+unicode-ccc,0.4.0,MIT/Apache-2.0,https://github.com/RazrFalcon/unicode-ccc,
+unicode-ident,1.0.16,(MIT OR Apache-2.0) AND Unicode-3.0,https://github.com/dtolnay/unicode-ident,1.31
+unicode-properties,0.1.4,MIT/Apache-2.0,https://github.com/unicode-rs/unicode-properties,
+unicode-script,0.5.8,MIT OR Apache-2.0,https://github.com/unicode-rs/unicode-script,
+unicode-segmentation,1.12.0,MIT OR Apache-2.0,https://github.com/unicode-rs/unicode-segmentation,
+unicode-vo,0.1.0,MIT/Apache-2.0,https://github.com/RazrFalcon/unicode-vo,
+unicode-width,0.2.2,MIT OR Apache-2.0,https://github.com/unicode-rs/unicode-width,1.66
+url,2.5.4,MIT OR Apache-2.0,https://github.com/servo/rust-url,1.63
+usvg,0.45.1,Apache-2.0 OR MIT,https://github.com/linebender/resvg,1.65.0
+utf16_iter,1.0.5,Apache-2.0 OR MIT,https://github.com/hsivonen/utf16_iter,
+utf8_iter,1.0.4,Apache-2.0 OR MIT,https://github.com/hsivonen/utf8_iter,
+uuid,1.13.1,Apache-2.0 OR MIT,https://github.com/uuid-rs/uuid,1.63.0
+version_check,0.9.5,MIT/Apache-2.0,https://github.com/SergioBenitez/version_check,
+web-time,1.1.0,MIT OR Apache-2.0,https://github.com/daxpedda/web-time,1.60
+webbrowser,1.2.5,MIT OR Apache-2.0,https://github.com/amodm/webbrowser-rs,1.85
+weezl,0.1.12,MIT OR Apache-2.0,https://github.com/image-rs/weezl,
+wgpu,27.0.1,MIT OR Apache-2.0,https://github.com/gfx-rs/wgpu,1.88
+wgpu-core,27.0.3,MIT OR Apache-2.0,https://github.com/gfx-rs/wgpu,1.82.0
+wgpu-hal,27.0.4,MIT OR Apache-2.0,https://github.com/gfx-rs/wgpu,1.82.0
+wgpu-types,27.0.1,MIT OR Apache-2.0,https://github.com/gfx-rs/wgpu,1.82.0
+winit,0.30.13,Apache-2.0,https://github.com/rust-windowing/winit,1.70.0
+write16,1.0.0,Apache-2.0 OR MIT,https://github.com/hsivonen/write16,
+writeable,0.5.5,Unicode-3.0,https://github.com/unicode-org/icu4x,1.67
+xmlwriter,0.1.0,MIT,https://github.com/RazrFalcon/xmlwriter,
+yoke,0.7.5,Unicode-3.0,https://github.com/unicode-org/icu4x,1.71.1
+yoke-derive,0.7.5,Unicode-3.0,https://github.com/unicode-org/icu4x,
+zerocopy,0.8.27,BSD-2-Clause OR Apache-2.0 OR MIT,https://github.com/google/zerocopy,1.56.0
+zerocopy-derive,0.8.27,BSD-2-Clause OR Apache-2.0 OR MIT,https://github.com/google/zerocopy,
+zerofrom,0.1.5,Unicode-3.0,https://github.com/unicode-org/icu4x,1.71.1
+zerofrom-derive,0.1.5,Unicode-3.0,https://github.com/unicode-org/icu4x,
+zerovec,0.10.4,Unicode-3.0,https://github.com/unicode-org/icu4x,1.67
+zerovec-derive,0.10.3,Unicode-3.0,https://github.com/unicode-org/icu4x,
+zlib-rs,0.6.8,Zlib,https://github.com/trifectatechfoundation/zlib-rs,1.75
+zune-core,0.4.12,MIT OR Apache-2.0 OR Zlib,,
+zune-core,0.5.3,MIT OR Apache-2.0 OR Zlib,https://github.com/etemesi254/zune-image,1.75.0
+zune-jpeg,0.4.21,MIT OR Apache-2.0 OR Zlib,https://github.com/etemesi254/zune-image/tree/dev/crates/zune-jpeg,
+zune-jpeg,0.5.15,MIT OR Apache-2.0 OR Zlib,https://github.com/etemesi254/zune-image/tree/dev/crates/zune-jpeg,1.75.0

@@ -1,0 +1,37 @@
+name: Draft macOS release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  package:
+    runs-on: macos-14
+    env:
+      UML_STUDIO_HOME: ${{ runner.temp }}/uml-studio-release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Match tag to manifest
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
+          test "${GITHUB_REF_NAME}" = "v${version}"
+      - run: cargo fmt --check
+      - run: cargo check --locked --all-targets
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked --all-targets
+      - run: bash scripts/package-macos.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-package
+          path: dist/*.zip*
+      - name: Create reviewable draft (ad-hoc signed, not notarized)
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/*.zip dist/*.sha256 --draft --title "UML Studio $GITHUB_REF_NAME" --notes-file docs/release-notes.md

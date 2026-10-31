@@ -16,6 +16,7 @@ pub enum ContextAction {
 }
 #[derive(Default)]
 pub struct CanvasState {
+    scene_cache: scene::SceneCache,
     pub selection: HashSet<Id>,
     pub selected_area: Option<Layout>,
     context_relation: Option<Id>,
@@ -161,9 +162,7 @@ impl CanvasState {
         }
     }
     pub fn ui(&mut self, ui: &mut egui::Ui, d: &mut Diagram, tool: &mut Tool) -> bool {
-        for n in &mut d.nodes {
-            n.reflow();
-        }
+        self.scene_cache.reflow_changed(d);
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
         let rect = response.rect;
         let origin = rect.min;
@@ -243,7 +242,7 @@ impl CanvasState {
                 x += spacing;
             }
         }
-        let sc = scene::build(d);
+        let sc = self.scene_cache.get(d);
         let space = ui.input(|i| i.key_down(Key::Space)) && !ui.ctx().wants_keyboard_input();
         if response.dragged_by(PointerButton::Primary) && space {
             let delta = ui.input(|i| i.pointer.delta());

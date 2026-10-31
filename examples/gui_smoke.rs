@@ -71,6 +71,9 @@ fn main() -> eframe::Result<()> {
         },
         Box::new(move |cc| {
             let mut app = UmlApp::new(cc);
+            if args.iter().any(|a| a == "--dark") {
+                uml_studio::theme::apply_mode(&cc.egui_ctx, true);
+            }
             let mut p = if review {
                 uml_studio::demo::review_project()
             } else {

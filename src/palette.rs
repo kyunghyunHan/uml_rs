@@ -27,17 +27,17 @@ pub fn node_tool(ui: &mut egui::Ui, tool: &mut Tool, kind: NodeKind) {
     );
     let selected = *tool == Tool::Add(kind);
     let color = if selected {
-        crate::theme::BLUE_TEXT
+        crate::theme::ui_color(ui, crate::theme::BLUE_TEXT)
     } else {
-        crate::theme::TEXT
+        crate::theme::ui_color(ui, crate::theme::TEXT)
     };
     ui.painter().rect_filled(
         rect,
         4.,
         if selected {
-            crate::theme::BLUE_LIGHT
+            crate::theme::ui_color(ui, crate::theme::BLUE_LIGHT)
         } else if response.hovered() || response.has_focus() {
-            crate::theme::HOVER
+            crate::theme::ui_color(ui, crate::theme::HOVER)
         } else {
             Color32::TRANSPARENT
         },
@@ -258,9 +258,9 @@ pub fn relation_option_ends(
         rect,
         4.,
         if selected {
-            crate::theme::BLUE_LIGHT
+            crate::theme::ui_color(ui, crate::theme::BLUE_LIGHT)
         } else if response.hovered() || response.has_focus() {
-            crate::theme::HOVER
+            crate::theme::ui_color(ui, crate::theme::HOVER)
         } else {
             Color32::TRANSPARENT
         },
@@ -283,9 +283,9 @@ pub fn relation_option_ends(
         rect.min + egui::vec2(86., (32. - galley.size().y) / 2.),
         galley,
         if selected {
-            crate::theme::BLUE_TEXT
+            crate::theme::ui_color(ui, crate::theme::BLUE_TEXT)
         } else {
-            crate::theme::TEXT
+            crate::theme::ui_color(ui, crate::theme::TEXT)
         },
     );
     response.widget_info(|| {

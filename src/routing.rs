@@ -637,14 +637,35 @@ pub fn path(d: &Diagram, r: &Relation) -> Vec<Point> {
     if r.route_mode == RouteMode::Straight {
         return simplify(vec![start, end]);
     }
+    // A direct segment must not run through an actor's label below its body.
     if r.route_mode == RouteMode::Auto
         && d.kind == DiagramKind::UseCase
-        && r.source_port.side == PortSide::Auto
-        && r.target_port.side == PortSide::Auto
+        && [a, b].iter().any(|n| {
+            if n.kind != NodeKind::Actor {
+                return false;
+            }
+            let (body, _) = actor_body(n.layout, &n.name);
+            segment_hits(
+                start,
+                end,
+                Layout::new(
+                    n.layout.pos.x,
+                    body.pos.y + body.size.y,
+                    n.layout.size.x,
+                    (n.layout.size.y - body.size.y).max(1.),
+                ),
+            )
+        })
     {
         return legacy_path(d, r);
     }
-    if r.route_mode == RouteMode::Auto && !obstacles(d).any(|n| segment_hits(start, end, n.layout))
+    if r.route_mode == RouteMode::Auto
+        && !obstacles(d).any(|n| {
+            // Ellipse/actor attachments are inside their rectangular selection bounds.
+            let shaped_endpoint = (n.id == r.source || n.id == r.target)
+                && matches!(n.kind, NodeKind::Actor | NodeKind::UseCase);
+            !shaped_endpoint && segment_hits(start, end, n.layout)
+        })
     {
         return simplify(vec![start, end]);
     }

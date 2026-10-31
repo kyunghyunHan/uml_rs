@@ -245,6 +245,11 @@ pub fn project_diagnostics(p: &Project) -> Vec<Diagnostic> {
         .collect();
     let diagrams: HashMap<_, _> = p.diagrams.iter().map(|d| (d.id, d)).collect();
     for d in &p.diagrams {
+        let parents: HashMap<_, _> = d
+            .nodes
+            .iter()
+            .filter_map(|n| n.boundary.map(|parent| (n.id, parent)))
+            .collect();
         let mut issue = |element, message: String| {
             out.push(Diagnostic {
                 diagram: d.id,
@@ -285,6 +290,18 @@ pub fn project_diagnostics(p: &Project) -> Vec<Diagnostic> {
             {
                 issue(n.id, "포함 경계/패키지를 찾을 수 없습니다".into());
             }
+            let mut visited = HashSet::from([n.id]);
+            let mut current = n.id;
+            while let Some(&parent) = parents.get(&current) {
+                if !visited.insert(parent) {
+                    issue(
+                        n.id,
+                        "포함 경계/패키지가 순환합니다. 소속을 해제하세요".into(),
+                    );
+                    break;
+                }
+                current = parent;
+            }
             for link in &n.specification.sequences {
                 if !diagrams
                     .get(link)
@@ -298,6 +315,18 @@ pub fn project_diagnostics(p: &Project) -> Vec<Diagnostic> {
             }
         }
         let seq = &d.sequence;
+        for f in &seq.fragments {
+            if [f.participant_start, f.participant_end]
+                .into_iter()
+                .flatten()
+                .any(|id| !seq.participants.iter().any(|p| p.id == id))
+            {
+                issue(
+                    f.id,
+                    "프래그먼트 참여자 범위를 찾을 수 없습니다. 범위를 다시 지정하세요".into(),
+                );
+            }
+        }
         for participant in &seq.participants {
             if let Some(link) = participant.type_ref
                 && !nodes.get(&link).is_some_and(|n| n.is_classifier())

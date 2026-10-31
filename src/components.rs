@@ -81,9 +81,9 @@ pub fn diagram_tab(
         rect,
         4.,
         if active {
-            Color32::WHITE
+            ui.visuals().extreme_bg_color
         } else if hover || focused {
-            theme::HOVER
+            theme::ui_color(ui, theme::HOVER)
         } else {
             Color32::TRANSPARENT
         },
@@ -91,23 +91,31 @@ pub fn diagram_tab(
     if active {
         ui.painter().line_segment(
             [rect.left_bottom(), rect.right_bottom()],
-            Stroke::new(2_f32, theme::BLUE),
+            Stroke::new(2_f32, theme::ui_color(ui, theme::BLUE)),
         );
     }
     if focused {
         ui.painter().rect_stroke(
             rect.shrink(1.),
             4.,
-            Stroke::new(1_f32, theme::BLUE),
+            Stroke::new(1_f32, theme::ui_color(ui, theme::BLUE)),
             egui::StrokeKind::Inside,
         );
     }
-    let color = if active { theme::TEXT } else { theme::MUTED };
+    let color = if active {
+        theme::ui_color(ui, theme::TEXT)
+    } else {
+        theme::ui_color(ui, theme::MUTED)
+    };
     diagram_icon(
         ui.painter(),
         rect.min + egui::vec2(17., 17.),
         kind,
-        if active { theme::BLUE } else { color },
+        if active {
+            theme::ui_color(ui, theme::BLUE)
+        } else {
+            color
+        },
     );
     text(
         ui,
@@ -120,13 +128,14 @@ pub fn diagram_tab(
     );
     if active || hover || focused {
         if close.hovered() || close.has_focus() {
-            ui.painter().rect_filled(close_rect, 4., theme::HOVER);
+            ui.painter()
+                .rect_filled(close_rect, 4., theme::ui_color(ui, theme::HOVER));
         }
         let c = close_rect.center();
         for (a, b) in [([-3.5, -3.5], [3.5, 3.5]), ([-3.5, 3.5], [3.5, -3.5])] {
             ui.painter().line_segment(
                 [c + egui::vec2(a[0], a[1]), c + egui::vec2(b[0], b[1])],
-                Stroke::new(1.4_f32, theme::MUTED),
+                Stroke::new(1.4_f32, theme::ui_color(ui, theme::MUTED)),
             );
         }
     }
@@ -158,24 +167,28 @@ pub fn list_row(
         rect,
         4.,
         if selected {
-            theme::BLUE_LIGHT
+            theme::ui_color(ui, theme::BLUE_LIGHT)
         } else if response.hovered() || response.has_focus() {
-            theme::HOVER
+            theme::ui_color(ui, theme::HOVER)
         } else {
             Color32::TRANSPARENT
         },
     );
     let color = if selected {
-        theme::BLUE_TEXT
+        theme::ui_color(ui, theme::BLUE_TEXT)
     } else {
-        theme::TEXT
+        theme::ui_color(ui, theme::TEXT)
     };
     let inset = if let Some(kind) = kind {
         diagram_icon(
             ui.painter(),
             rect.min + egui::vec2(17., 16.),
             kind,
-            if selected { theme::BLUE } else { theme::MUTED },
+            if selected {
+                theme::ui_color(ui, theme::BLUE)
+            } else {
+                theme::ui_color(ui, theme::MUTED)
+            },
         );
         34.
     } else {
@@ -209,8 +222,12 @@ pub fn section(ui: &mut egui::Ui, label: &str) {
 
 pub fn delete_button(ui: &mut egui::Ui, label: &str) -> Response {
     ui.add(
-        egui::Button::new(egui::RichText::new(label).color(theme::ERROR))
-            .fill(Color32::from_rgb(253, 242, 242)),
+        egui::Button::new(egui::RichText::new(label).color(theme::ui_color(ui, theme::ERROR)))
+            .fill(if ui.visuals().dark_mode {
+                theme::ui_color(ui, theme::HOVER)
+            } else {
+                Color32::from_rgb(253, 242, 242)
+            }),
     )
 }
 
@@ -222,7 +239,11 @@ pub fn text_input(value: &mut String) -> egui::TextEdit<'_> {
 }
 
 pub fn field_label(ui: &mut egui::Ui, label: &str) {
-    ui.label(egui::RichText::new(label).size(12.).color(theme::MUTED));
+    ui.label(
+        egui::RichText::new(label)
+            .size(12.)
+            .color(theme::ui_color(ui, theme::MUTED)),
+    );
 }
 
 pub fn icon_button(ui: &mut egui::Ui, label: &str) -> Response {
@@ -244,7 +265,7 @@ pub fn tool_hint(ui: &mut egui::Ui, label: &str) {
     ui.painter().galley(
         egui::pos2(rect.left(), rect.center().y - galley.size().y / 2.),
         galley,
-        theme::MUTED,
+        theme::ui_color(ui, theme::MUTED),
     );
     response.on_hover_text(label);
 }

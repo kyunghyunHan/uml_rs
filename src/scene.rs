@@ -34,6 +34,37 @@ pub struct Scene {
     pub boxes: HashMap<Id, Layout>,
     pub event_y: HashMap<Id, f32>,
 }
+/// Cache only world geometry. View changes, selection and theme do not invalidate it.
+#[derive(Default)]
+pub struct SceneCache {
+    diagram: Option<Diagram>,
+    scene: std::sync::Arc<Scene>,
+}
+impl SceneCache {
+    pub fn reflow_changed(&self, d: &mut Diagram) {
+        let previous = self.diagram.as_ref().filter(|old| old.id == d.id);
+        for (i, n) in d.nodes.iter_mut().enumerate() {
+            if previous.and_then(|old| old.nodes.get(i)) != Some(n) {
+                n.reflow();
+            }
+        }
+    }
+
+    pub fn get(&mut self, d: &Diagram) -> std::sync::Arc<Scene> {
+        let unchanged = self.diagram.as_ref().is_some_and(|old| {
+            old.id == d.id
+                && old.kind == d.kind
+                && old.nodes == d.nodes
+                && old.relations == d.relations
+                && old.sequence == d.sequence
+        });
+        if !unchanged {
+            self.scene = std::sync::Arc::new(build(d));
+            self.diagram = Some(d.clone());
+        }
+        self.scene.clone()
+    }
+}
 impl Scene {
     fn push(&mut self, owner: Id, p: Primitive) {
         self.items.push(Item {
@@ -637,6 +668,15 @@ pub fn paint(scene: &Scene, painter: &egui::Painter, origin: Pos2, pan: Point, z
     let map = |p: Point| Pos2::new(origin.x + pan.x + p.x * zoom, origin.y + pan.y + p.y * zoom);
     let stroke = Stroke::new(1.5 * zoom, color());
     for item in &scene.items {
+        let bounds = primitive_bounds(&item.primitive);
+        let screen = Rect::from_min_size(
+            map(bounds.pos),
+            egui::vec2(bounds.size.x * zoom, bounds.size.y * zoom),
+        );
+        if !painter.clip_rect().intersects(screen.expand(2. * zoom)) {
+            continue;
+        }
+
         match &item.primitive {
             Primitive::Rect { rect, fill } => {
                 let r = Rect::from_min_size(

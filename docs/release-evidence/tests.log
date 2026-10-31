@@ -1,0 +1,176 @@
+   Compiling uml-studio v0.1.0 (/Users/hangyeonghyeon/Desktop/Rust/gui/uml_rs)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.77s
+     Running unittests src/lib.rs (target/debug/deps/uml_studio-b42e5c9aca1f6639)
+
+running 12 tests
+test app::tests::replacing_dirty_project_requires_a_decision ... ok
+test app::tests::text_focus_blocks_canvas_delete_and_duplicate_shortcuts ... ok
+test app::tests::app_undo_does_not_record_itself_and_redo_survives_next_frame ... ok
+test app::tests::tool_rows_stay_fixed_and_controls_fit_at_both_window_sizes ... ok
+test storage::tests::interrupted_or_full_write_preserves_original_and_removes_temporary_file ... ok
+test app::tests::property_name_edit_through_text_input_can_be_undone_and_redone ... ok
+test app::tests::app_save_conflict_keeps_dirty_work_and_recovery_and_other_sessions ... ok
+test app::tests::route_mode_and_port_properties_update_the_canvas_at_both_sizes ... ok
+test app::tests::tabs_select_close_without_deleting_and_reopen_at_both_window_sizes ... ok
+test app::tests::usecase_relation_menu_and_canvas_clicks_create_one_undoable_relation ... ok
+test app::tests::class_navigation_menu_creation_property_presets_and_swap_are_undoable ... ok
+test app::tests::properties_panel_stays_bounded_across_frames_and_window_sizes ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.11s
+
+     Running unittests src/main.rs (target/debug/deps/uml_studio-5b5df75b7d4ac323)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/connections.rs (target/debug/deps/connections-2b820465595779db)
+
+running 16 tests
+test existing_line_over_an_actor_does_not_intercept_the_connection_click ... ok
+test escape_cancels_connection_even_with_pointer_outside_canvas ... ok
+test dragging_an_endpoint_snaps_on_the_boundary_without_moving_the_class ... ok
+test class_invalid_start_is_explained_before_picking_a_source ... ok
+test invalid_destination_keeps_the_source_for_a_valid_retry ... ok
+test invalid_drag_can_be_retried_and_releasing_outside_creates_no_relation ... ok
+test leaving_the_connection_tool_clears_its_pending_source ... ok
+test self_association_works_without_triggering_name_editing ... ok
+test destination_feedback_is_drawn_on_canvas_and_cleared_after_retry ... ok
+test invalid_usecase_start_is_rejected_immediately_with_canvas_guidance ... ok
+test system_boundary_interior_does_not_capture_connection_endpoints ... ok
+test relationship_context_menu_changes_route_and_preserves_manual_points_until_reset ... ok
+test invalid_relation_pairs_report_errors_without_changing_the_diagram ... ok
+test every_supported_relation_can_also_be_created_by_dragging ... ok
+test each_created_relation_can_be_retargeted_undone_saved_and_loaded ... ok
+test every_supported_relation_can_be_created_by_clicking_at_different_zooms ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
+
+     Running tests/editor_components.rs (target/debug/deps/editor_components-6c544f37a2cc251d)
+
+running 1 test
+test inactive_tab_reserves_its_close_area_and_shows_cross_on_hover_and_keyboard_focus ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/improvements.rs (target/debug/deps/improvements-f602a2b0d030c442)
+
+running 25 tests
+test automatic_activation_ids_are_stable_and_manual_intervals_are_retained ... ok
+test copying_one_message_does_not_duplicate_other_messages_between_its_participants ... ok
+test actor_generalization_uses_a_real_limb_and_avoids_the_name_below_it ... ok
+test explicit_boundary_membership_is_stable_under_overlap_and_resize ... ok
+test copying_a_boundary_copies_explicit_children_and_their_internal_relations ... ok
+test actor_scaling_changes_body_and_connection_points_with_fixed_text_size ... ok
+test interface_generalization_and_class_realization_have_correct_direction ... ok
+test fragments_scope_nest_and_reserve_safe_branch_gutters ... ok
+test copied_sequence_preserves_scope_and_external_type_method_links ... ok
+test manual_routes_survive_endpoint_moves_and_copy_with_orthogonal_segments ... ok
+test automatic_class_text_grows_and_manual_wrap_preserves_user_size ... ok
+test migrated_class_compartments_still_fit_original_saved_sizes ... ok
+test dragging_sequence_rows_changes_order_without_replacing_event_ids ... ok
+test canvas_route_handle_drag_is_an_actual_mouse_edit ... ok
+test long_multilingual_sequence_labels_use_available_width_and_separate_events ... ok
+test recreating_a_destroyed_identity_is_diagnosed_instead_of_hiding_a_second_lifetime ... ok
+test quick_member_entry_parses_uml_and_rejects_incomplete_text ... ok
+test shared_validation_rejects_retargeting_and_cycles_without_mutation ... ok
+test sequence_arrows_attach_to_edges_and_nested_calls_have_distinct_lanes ... ok
+test usecase_creation_and_editing_use_identical_rules ... ok
+test v1_migration_preserves_ids_geometry_and_explicit_containment ... ok
+test invalid_legacy_relationships_load_losslessly_for_repair ... ok
+test lifecycle_layout_and_diagnostics_survive_storage ... ok
+test cross_diagram_ids_rename_roundtrip_and_deleted_targets_are_diagnosed ... ok
+test png_svg_and_preview_are_real_outputs_with_portable_outlined_text ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.08s
+
+     Running tests/relationship_editing.rs (target/debug/deps/relationship_editing-f1e7a210b4f4043e)
+
+running 11 tests
+test allowed_kinds_and_class_start_endpoint_candidates_share_validation ... ok
+test multiplicity_syntax_ranges_and_composition_owner_are_validated_on_create_and_update ... ok
+test ports_remain_on_borders_after_move_resize_and_fit_selection_does_not_edit_content ... ok
+test automatic_straight_and_orthogonal_routes_handle_geometry_and_obstacles_without_moving_nodes ... ok
+test labels_avoid_nodes_and_each_other_and_classifier_typography_survives ... ok
+test self_loops_parallel_relations_and_other_endpoint_snap_remain_distinct_and_attached ... ok
+test all_navigability_states_are_independent_of_diamonds_and_plain_associations_stay_plain ... ok
+test arrowheads_follow_the_first_and_last_segments_after_routing_and_reversal ... ok
+test manual_routes_reverse_with_all_end_metadata_and_survive_modes_history_and_storage ... ok
+test v1_and_v2_navigation_migrate_without_turning_false_into_non_navigable ... ok
+test scene_canvas_and_svg_use_identical_decoration_points_and_png_matches_svg_rendering ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.18s
+
+     Running tests/release_safety.rs (target/debug/deps/release_safety-0ca37d36ced7dfc0)
+
+running 15 tests
+test nested_alignment_and_distribution_translate_descendants ... ok
+test auto_usecase_route_is_direct_when_clear_and_waypoints_survive_mode_changes ... ok
+test old_preferences_load_and_dark_theme_keeps_custom_text_legible ... ok
+test culled_geometry_still_participates_in_hit_testing_and_export_bounds ... ok
+test extreme_finite_route_coordinates_are_rejected_before_rendering ... ok
+test failed_rename_cleans_temporary_file_and_missing_parent_fails ... ok
+test scene_cache_reuses_view_changes_and_invalidates_content_and_undo ... ok
+test nested_package_moves_once_and_cycles_are_diagnosed_without_destroying_recovery ... ok
+test malformed_versions_duplicate_ids_and_oversize_files_are_rejected ... ok
+test replacing_existing_file_keeps_its_permissions ... ok
+test dangling_fragment_participant_scope_is_diagnosed_losslessly ... ok
+test save_lock_conflict_does_not_modify_original_or_remove_other_lock ... ok
+test concurrent_editors_refuse_to_overwrite_and_missing_original_is_preserved ... ok
+test recovery_sessions_and_legacy_snapshots_remain_independent ... ok
+test seeded_random_edits_keep_ids_references_and_undo_redo_roundtrips ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running tests/workflows.rs (target/debug/deps/workflows-8d92cf463b1acb10)
+
+running 16 tests
+test coordinate_transform_roundtrip_across_zoom_levels ... ok
+test move_delete_undo_redo_restores_connected_elements ... ok
+test copy_paste_reissues_ids_and_keeps_internal_relationships ... ok
+test boundary_moves_contained_use_cases_once ... ok
+test copying_a_connection_alone_reissues_its_id_and_keeps_endpoints ... ok
+test duplicate_ids_and_dangling_references_are_rejected ... ok
+test removing_participant_cascades_and_can_be_undone ... ok
+test sequence_copy_keeps_internal_event_references ... ok
+test scene_hit_tests_pick_nodes_lines_and_do_not_swallow_boundary_interior ... ok
+test canvas_drag_selection_and_resize_work_after_zoom ... ok
+test sequence_insert_delete_and_reorder_keep_references_consistent ... ok
+test viewport_navigation_is_not_an_undo_command ... ok
+test invalid_export_and_files_fail_without_replacing_existing_file ... ok
+test korean_glyphs_are_present_in_export ... ok
+test project_roundtrip_preserves_ids_and_relationships ... ok
+test png_exports_all_diagrams_with_korean_and_ignores_view ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+
+     Running unittests examples/app_icon.rs (target/debug/examples/app_icon-c129fbe2f2c07bf2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/gui_smoke.rs (target/debug/examples/gui_smoke-ad29602b8f67d9ec)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/performance.rs (target/debug/examples/performance-cb741bbcce25cd9a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/relationship_review.rs (target/debug/examples/relationship_review-0a7e850c7e9a1c0a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/ui_snapshot.rs (target/debug/examples/ui_snapshot-e8be7f677e2d458b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

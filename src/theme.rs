@@ -1,4 +1,4 @@
-//! Shared metrics and the light desktop editor theme.
+//! Shared metrics and accessible light/dark editor chrome. The diagram stays white paper.
 use eframe::egui::{self, Color32, Stroke};
 
 pub const CONTROL_HEIGHT: f32 = 32.;
@@ -16,6 +16,9 @@ pub const BLUE_TEXT: Color32 = Color32::from_rgb(35, 76, 145);
 pub const ERROR: Color32 = Color32::from_rgb(174, 57, 57);
 
 pub fn apply(ctx: &egui::Context) {
+    apply_mode(ctx, false);
+}
+pub fn apply_mode(ctx: &egui::Context, dark: bool) {
     let mut style = (*ctx.style()).clone();
     style.visuals = egui::Visuals::light();
     style
@@ -65,16 +68,47 @@ pub fn apply(ctx: &egui::Context) {
         widget.corner_radius = 4.into();
         widget.expansion = 0.;
     }
+    if dark {
+        style.visuals = egui::Visuals::dark();
+        style.visuals.window_corner_radius = 6.into();
+        style.visuals.menu_corner_radius = 4.into();
+    }
     ctx.set_style(style);
 }
 
-pub fn toolbar_frame() -> egui::Frame {
+pub fn toolbar_frame(ctx: &egui::Context) -> egui::Frame {
     egui::Frame::new()
-        .fill(PANEL)
+        .fill(adapt(ctx.style().visuals.dark_mode, PANEL))
         .inner_margin(egui::Margin::symmetric(12, 6))
-        .stroke(Stroke::new(1_f32, BORDER))
+        .stroke(Stroke::new(
+            1_f32,
+            adapt(ctx.style().visuals.dark_mode, BORDER),
+        ))
 }
 
-pub fn panel_frame() -> egui::Frame {
-    egui::Frame::new().fill(PANEL).inner_margin(12)
+pub fn panel_frame(ctx: &egui::Context) -> egui::Frame {
+    egui::Frame::new()
+        .fill(adapt(ctx.style().visuals.dark_mode, PANEL))
+        .inner_margin(12)
+}
+
+/// Keep custom tab/palette painters consistent with egui's active visuals.
+pub fn ui_color(ui: &egui::Ui, light: Color32) -> Color32 {
+    adapt(ui.visuals().dark_mode, light)
+}
+fn adapt(dark: bool, light: Color32) -> Color32 {
+    if !dark {
+        return light;
+    }
+    match light {
+        TEXT => Color32::from_rgb(225, 230, 240),
+        MUTED => Color32::from_rgb(170, 180, 197),
+        PANEL => Color32::from_rgb(30, 34, 42),
+        BORDER => Color32::from_rgb(65, 73, 88),
+        HOVER => Color32::from_rgb(49, 57, 72),
+        BLUE_LIGHT => Color32::from_rgb(40, 65, 105),
+        BLUE_TEXT | BLUE => Color32::from_rgb(147, 189, 255),
+        ERROR => Color32::from_rgb(255, 145, 145),
+        other => other,
+    }
 }

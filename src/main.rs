@@ -10,15 +10,18 @@ fn main() -> eframe::Result<()> {
         } else {
             uml_studio::app::example_project()
         };
-        storage::save(
+        let result = storage::save(
             std::path::Path::new(
                 args.get(2)
                     .map(String::as_str)
                     .unwrap_or("examples/sorting.umlproj"),
             ),
             &p,
-        )
-        .expect("example save");
+        );
+        if let Err(e) = result {
+            eprintln!("{e}");
+            std::process::exit(1);
+        }
         return Ok(());
     }
     if args

@@ -283,16 +283,29 @@ impl Clipboard {
         out
     }
 }
-pub fn move_nodes(d: &mut Diagram, selection: &HashSet<Id>, delta: Point) {
-    let mut moving = selection.clone();
-    for child in &d.nodes {
-        if child
-            .boundary
-            .is_some_and(|parent| selection.contains(&parent))
-        {
-            moving.insert(child.id);
+/// Transitive containment, with a visited set so damaged legacy cycles cannot loop.
+fn descendants(d: &Diagram, roots: &HashSet<Id>) -> HashSet<Id> {
+    let mut children: HashMap<Id, Vec<Id>> = HashMap::new();
+    for n in &d.nodes {
+        if let Some(parent) = n.boundary {
+            children.entry(parent).or_default().push(n.id);
         }
     }
+    let mut all = roots.clone();
+    let mut pending: Vec<_> = roots.iter().copied().collect();
+    while let Some(parent) = pending.pop() {
+        if let Some(children) = children.get(&parent) {
+            for &child in children {
+                if all.insert(child) {
+                    pending.push(child);
+                }
+            }
+        }
+    }
+    all
+}
+pub fn move_nodes(d: &mut Diagram, selection: &HashSet<Id>, delta: Point) {
+    let moving = descendants(d, selection);
     for n in &mut d.nodes {
         if moving.contains(&n.id) {
             n.layout.pos.x += delta.x;
@@ -352,14 +365,7 @@ pub fn align(d: &mut Diagram, selection: &HashSet<Id>, mode: usize) {
             )
         })
         .collect();
-    for n in &mut d.nodes {
-        if !selection.contains(&n.id)
-            && let Some(delta) = n.boundary.and_then(|id| deltas.get(&id))
-        {
-            n.layout.pos.x += delta.x;
-            n.layout.pos.y += delta.y;
-        }
-    }
+    move_descendants(d, &deltas);
 }
 
 /// Distribute selected top-level boxes while retaining explicit containment.
@@ -400,16 +406,41 @@ pub fn distribute(d: &mut Diagram, selection: &HashSet<Id>, horizontal: bool) {
         );
         cursor += length(old) + gap;
     }
+    // Selected boxes have not yet moved in this operation.
     for n in &mut d.nodes {
-        if let Some(delta) = deltas
-            .get(&n.id)
-            .or_else(|| n.boundary.and_then(|id| deltas.get(&id)))
-        {
+        if let Some(delta) = deltas.get(&n.id) {
             n.layout.pos.x += delta.x;
             n.layout.pos.y += delta.y;
         }
     }
+    move_descendants(d, &deltas);
 }
+fn move_descendants(d: &mut Diagram, deltas: &HashMap<Id, Point>) {
+    let parents: HashMap<_, _> = d
+        .nodes
+        .iter()
+        .filter_map(|n| n.boundary.map(|p| (n.id, p)))
+        .collect();
+    for n in &mut d.nodes {
+        if deltas.contains_key(&n.id) {
+            continue;
+        }
+        let mut current = n.id;
+        let mut visited = HashSet::from([current]);
+        while let Some(&parent) = parents.get(&current) {
+            if !visited.insert(parent) {
+                break;
+            }
+            if let Some(delta) = deltas.get(&parent) {
+                n.layout.pos.x += delta.x;
+                n.layout.pos.y += delta.y;
+                break;
+            }
+            current = parent;
+        }
+    }
+}
+
 pub fn duplicate_diagram(d: &Diagram) -> Diagram {
     let selection = d
         .nodes

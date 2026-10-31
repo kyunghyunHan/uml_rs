@@ -1,0 +1,11 @@
+    Finished `release` profile [optimized] target(s) in 0.37s
+Collected 212 dependency entries; 32 need license-text review. See /Users/hangyeonghyeon/Desktop/Rust/gui/uml_rs/dist/ThirdPartyLicenses
+   Compiling uml-studio v0.1.0 (/Users/hangyeonghyeon/Desktop/Rust/gui/uml_rs)
+    Finished `release` profile [optimized] target(s) in 0.80s
+     Running `target/release/examples/app_icon /Users/hangyeonghyeon/Desktop/Rust/gui/uml_rs/dist/UmlStudio.iconset`
+/Users/hangyeonghyeon/Desktop/Rust/gui/uml_rs/dist/UML Studio.app/Contents/Info.plist: OK
+/Users/hangyeonghyeon/Desktop/Rust/gui/uml_rs/dist/UML Studio.app: replacing existing signature
+/Users/hangyeonghyeon/Desktop/Rust/gui/uml_rs/dist/UML Studio.app: valid on disk
+/Users/hangyeonghyeon/Desktop/Rust/gui/uml_rs/dist/UML Studio.app: satisfies its Designated Requirement
+Created /Users/hangyeonghyeon/Desktop/Rust/gui/uml_rs/dist/UML Studio.app
+Created /Users/hangyeonghyeon/Desktop/Rust/gui/uml_rs/dist/UML-Studio-0.1.0-macos-arm64.zip
